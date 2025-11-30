@@ -52,3 +52,7 @@ cocinAI/settings.py
 .DS_Store
 Thumbs.db
 
+# Variables de entorno
+.env
+/static/
+media/
