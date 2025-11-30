@@ -21,8 +21,8 @@ Sistema de gesti√≥n para restaurantes desarrollado con Django que incluye gesti√
 
 1. Clona el repositorio:
 ```bash
-git clone https://github.com/tu-usuario/CocinAI.git
-cd CocinAI
+git clone https://github.com/JuanBaeza95/Proyecto-de-Titulo-Cocinai.git
+cd Proyecto-de-Titulo-Cocinai
 ```
 
 2. Crea un entorno virtual:
