@@ -1,0 +1,195 @@
+{% extends 'compras/base.html' %}
+
+{% block page_subtitle %}Editar orden de compra{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'compras:detalle_orden' orden.id_orden_compra %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver al Detalle
+</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addDetailBtn = document.getElementById('add-detail');
+    const formsetContainer = document.getElementById('formset-container');
+    let formCount = {{ formset.total_form_count }};
+    
+    if (addDetailBtn) {
+        addDetailBtn.addEventListener('click', function() {
+            const newForm = formsetContainer.querySelector('.detail-form').cloneNode(true);
+            newForm.innerHTML = newForm.innerHTML.replace(/-0-/g, '-' + formCount + '-');
+            newForm.innerHTML = newForm.innerHTML.replace(/form-0/g, 'form-' + formCount);
+            formsetContainer.appendChild(newForm);
+            formCount++;
+            document.getElementById('id_detallecompra_set-TOTAL_FORMS').value = formCount;
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil text-primary"></i> Editar Orden de Compra #{{ orden.id_orden_compra }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Errores del formset -->
+                {% if formset.non_form_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in formset.non_form_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <form method="post" id="orden-form">
+                    {% csrf_token %}
+                    
+                    <!-- Información de la Orden -->
+                    <h6 class="mb-3"><i class="bi bi-info-circle"></i> Información de la Orden</h6>
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.id_proveedor.id_for_label }}" class="form-label">
+                                {{ form.id_proveedor.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.id_proveedor }}
+                            {% if form.id_proveedor.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.id_proveedor.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.fecha_pedido.id_for_label }}" class="form-label">
+                                {{ form.fecha_pedido.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.fecha_pedido }}
+                            {% if form.fecha_pedido.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.fecha_pedido.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.estado.id_for_label }}" class="form-label">
+                                {{ form.estado.label }}
+                            </label>
+                            {{ form.estado }}
+                            {% if form.estado.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.estado.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Detalles de Compra -->
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0"><i class="bi bi-list-ul"></i> Detalles de la Orden</h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-detail">
+                            <i class="bi bi-plus-circle"></i> Agregar Item
+                        </button>
+                    </div>
+                    
+                    <div id="formset-container">
+                        {{ formset.management_form }}
+                        {% for detalle_form in formset %}
+                            <div class="card mb-3 detail-form">
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label for="{{ detalle_form.id_insumo.id_for_label }}" class="form-label">
+                                                Insumo <span class="text-danger">*</span>
+                                            </label>
+                                            {{ detalle_form.id_insumo }}
+                                            {% if detalle_form.id_insumo.errors %}
+                                                <div class="text-danger small mt-1">
+                                                    {% for error in detalle_form.id_insumo.errors %}
+                                                        <div>{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-md-3">
+                                            <label for="{{ detalle_form.cantidad_pedida.id_for_label }}" class="form-label">
+                                                Cantidad <span class="text-danger">*</span>
+                                            </label>
+                                            {{ detalle_form.cantidad_pedida }}
+                                            {% if detalle_form.cantidad_pedida.errors %}
+                                                <div class="text-danger small mt-1">
+                                                    {% for error in detalle_form.cantidad_pedida.errors %}
+                                                        <div>{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-md-3">
+                                            <label for="{{ detalle_form.costo_unitario_acordado.id_for_label }}" class="form-label">
+                                                Costo Unitario <span class="text-danger">*</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                {{ detalle_form.costo_unitario_acordado }}
+                                            </div>
+                                            {% if detalle_form.costo_unitario_acordado.errors %}
+                                                <div class="text-danger small mt-1">
+                                                    {% for error in detalle_form.costo_unitario_acordado.errors %}
+                                                        <div>{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-md-2">
+                                            <label class="form-label">&nbsp;</label>
+                                            {% if formset.can_delete %}
+                                                <div class="d-grid">
+                                                    <label class="form-label">
+                                                        {{ detalle_form.DELETE }} Eliminar
+                                                    </label>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        {% for hidden in detalle_form.hidden_fields %}
+                                            {{ hidden }}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'compras:detalle_orden' orden.id_orden_compra %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

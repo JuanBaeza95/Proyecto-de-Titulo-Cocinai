@@ -1,0 +1,108 @@
+{% extends 'ventas/base.html' %}
+
+{% block page_subtitle %}Mover plato a mesa{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'produccion:lista_platos_producidos' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a Platos Producidos
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-arrow-right-circle text-primary"></i> Mover Plato a Mesa
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Plato:</strong> {{ plato_producido.id_plato.nombre_plato }}<br>
+                    <strong>Estado actual:</strong> {{ plato_producido.get_estado_display }}<br>
+                    <strong>Ubicación actual:</strong> {{ plato_producido.id_ubicacion.nombre_ubicacion }}
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.id_ubicacion.id_for_label }}" class="form-label">
+                            {{ form.id_ubicacion.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.id_ubicacion }}
+                        {% if form.id_ubicacion.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.id_ubicacion.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.id_ubicacion.help_text %}
+                            <div class="form-text">{{ form.id_ubicacion.help_text }}</div>
+                        {% endif %}
+                        {% if not form.id_ubicacion.queryset.exists %}
+                            <div class="alert alert-warning mt-2">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <strong>No hay ubicaciones de tipo "Mesa" configuradas.</strong><br>
+                                Por favor, crea una ubicación con tipo "Mesa" en 
+                                <a href="{% url 'inventario:crear_ubicacion' %}" target="_blank">Inventario > Ubicaciones</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.numero_mesa.id_for_label }}" class="form-label">
+                            {{ form.numero_mesa.label }}
+                        </label>
+                        {{ form.numero_mesa }}
+                        {% if form.numero_mesa.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.numero_mesa.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.numero_mesa.help_text %}
+                            <div class="form-text">{{ form.numero_mesa.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                            {{ form.observaciones.label }}
+                        </label>
+                        {{ form.observaciones }}
+                        {% if form.observaciones.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.observaciones.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'produccion:lista_platos_producidos' %}" 
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Confirmar Movimiento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

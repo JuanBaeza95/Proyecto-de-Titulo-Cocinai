@@ -1,0 +1,319 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<a href="{% url 'prediccion:predicciones_ventas_periodo' %}" class="btn btn-success me-2">
+    <i class="bi bi-calendar-range"></i> Predicciones por Período
+</a>
+<a href="{% url 'prediccion:reporte_completo' %}" class="btn btn-primary me-2">
+    <i class="bi bi-file-earmark-text"></i> Reporte Completo
+</a>
+<a href="{% url 'prediccion:reentrenar_modelo' %}" class="btn btn-warning">
+    <i class="bi bi-gear"></i> Reentrenar Modelo
+</a>
+{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i> <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <!-- Estadísticas principales -->
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <h6 class="mb-1">Ventas del Mes</h6>
+            <h2 class="mb-0">{% if insights %}{{ insights.ventas_mes }}{% else %}0{% endif %}</h2>
+            <small>Platos vendidos</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <h6 class="mb-1">Mermas del Mes</h6>
+            <h2 class="mb-0">{% if insights %}{{ insights.mermas_mes|floatformat:2 }}{% else %}0.00{% endif %}</h2>
+            <small>Unidades desperdiciadas</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <h6 class="mb-1">Insumos Urgentes</h6>
+            <h2 class="mb-0">{% if insights and insights.insumos_urgentes %}{{ insights.insumos_urgentes|length }}{% else %}0{% endif %}</h2>
+            <small>Requieren compra inmediata</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <h6 class="mb-1">Anomalías Detectadas</h6>
+            <h2 class="mb-0">{% if insights and insights.anomalias_ventas and insights.anomalias_mermas %}{{ insights.anomalias_ventas|length|add:insights.anomalias_mermas|length }}{% else %}0{% endif %}</h2>
+            <small>Eventos inusuales</small>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Análisis de Ventas Semanales -->
+    <div class="col-md-6 mb-4">
+        <div class="card insight-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Análisis Semanal de Ventas</h5>
+                <a href="{% url 'prediccion:ventas_semanales' %}" class="btn btn-sm btn-outline-primary">
+                    Ver Detalle
+                </a>
+            </div>
+            <div class="card-body">
+                {% if insights and insights.analisis_semanal %}
+                <p class="text-muted mb-3">
+                    Comparación Semana {{ insights.analisis_semanal.semana_actual }} 
+                    ({{ insights.analisis_semanal.año_actual }} vs {{ insights.analisis_semanal.año_anterior }})
+                </p>
+                
+                <div class="mb-3">
+                    <strong>Total Actual:</strong> {{ insights.analisis_semanal.total_actual }} platos<br>
+                    <strong>Total Año Anterior:</strong> {{ insights.analisis_semanal.total_anterior }} platos
+                </div>
+                
+                {% if insights.analisis_semanal.sugerencias %}
+                    <h6 class="mt-3 mb-2">Sugerencias:</h6>
+                    {% for sugerencia in insights.analisis_semanal.sugerencias|slice:":3" %}
+                        <div class="sugerencia">
+                            <strong>{{ sugerencia.plato }}:</strong> {{ sugerencia.mensaje }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No hay datos suficientes para comparar</p>
+                {% endif %}
+                {% else %}
+                    <p class="text-muted">No hay datos disponibles</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Análisis de Mermas -->
+    <div class="col-md-6 mb-4">
+        <div class="card insight-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Análisis de Mermas</h5>
+                <div>
+                    <a href="{% url 'prediccion:mermas' %}" class="btn btn-sm btn-outline-primary me-1">
+                        Ver Detalle
+                    </a>
+                    <a href="{% url 'prediccion:mermas_platos' %}" class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-egg-fried"></i> Mermas de Platos
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if insights and insights.analisis_mermas %}
+                <p class="text-muted mb-3">
+                    Análisis del mes actual ({{ insights.analisis_mermas.mes }}/{{ insights.analisis_mermas.año }})
+                </p>
+                
+                <div class="mb-3">
+                    <strong>Total Mermas:</strong> {{ insights.analisis_mermas.total_mermas|floatformat:2 }} unidades<br>
+                    <strong>Registros:</strong> {{ insights.analisis_mermas.total_registros }}
+                </div>
+                
+                {% if insights.analisis_mermas.alertas %}
+                    <h6 class="mt-3 mb-2">Alertas:</h6>
+                    {% for alerta in insights.analisis_mermas.alertas|slice:":3" %}
+                        <div class="alerta">
+                            <strong>{{ alerta.tipo|title }}:</strong> {{ alerta.mensaje }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-success">No se detectaron anomalías en mermas</p>
+                {% endif %}
+                {% else %}
+                    <p class="text-muted">No hay datos disponibles</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Platos Más Vendidos -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-trophy"></i> Platos Más Vendidos del Mes</h5>
+            </div>
+            <div class="card-body">
+                {% if insights and insights.platos_mas_vendidos %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Plato</th>
+                                    <th class="text-end">Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for plato in insights.platos_mas_vendidos %}
+                                    <tr>
+                                        <td>{{ plato.id_plato__nombre_plato }}</td>
+                                        <td class="text-end"><span class="badge bg-primary">{{ plato.cantidad }}</span></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No hay ventas registradas este mes</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Insumos Urgentes -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Insumos Urgentes</h5>
+                <a href="{% url 'prediccion:proyeccion_compras' %}" class="btn btn-sm btn-outline-primary">
+                    Ver Todos
+                </a>
+            </div>
+            <div class="card-body">
+                {% if insights and insights.insumos_urgentes %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Insumo</th>
+                                    <th class="text-end">A Comprar</th>
+                                    <th class="text-end">Días Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for insumo in insights.insumos_urgentes|slice:":5" %}
+                                    <tr>
+                                        <td>{{ insumo.insumo_nombre }}</td>
+                                        <td class="text-end">
+                                            <span class="badge bg-danger">
+                                                {{ insumo.cantidad_a_comprar|floatformat:2 }} {{ insumo.unidad_medida }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-warning">{{ insumo.dias_stock_restante|floatformat:0 }} días</span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-success">No hay insumos con urgencia alta</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Anomalías en Ventas -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Anomalías en Ventas</h5>
+                <a href="{% url 'prediccion:anomalias' %}" class="btn btn-sm btn-outline-primary">
+                    Ver Todas
+                </a>
+            </div>
+            <div class="card-body">
+                {% if insights and insights.anomalias_ventas %}
+                    {% for anomalia in insights.anomalias_ventas %}
+                        <div class="anomalia">
+                            <strong>{{ anomalia.fecha|date:"d/m/Y" }}:</strong> {{ anomalia.mensaje }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-success">No se detectaron anomalías en ventas</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Anomalías en Mermas -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Anomalías en Mermas</h5>
+                <a href="{% url 'prediccion:anomalias' %}" class="btn btn-sm btn-outline-primary">
+                    Ver Todas
+                </a>
+            </div>
+            <div class="card-body">
+                {% if insights and insights.anomalias_mermas %}
+                    {% for anomalia in insights.anomalias_mermas %}
+                        <div class="anomalia">
+                            <strong>{{ anomalia.fecha|date:"d/m/Y" }}:</strong> {{ anomalia.mensaje }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-success">No se detectaron anomalías en mermas</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Accesos Rápidos -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Accesos Rápidos</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'prediccion:ventas_semanales' %}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-calendar-week"></i> Ventas Semanales
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'prediccion:ventas_mensuales' %}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-calendar-month"></i> Ventas Mensuales
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'prediccion:mermas' %}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-exclamation-triangle"></i> Análisis de Mermas
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'prediccion:proyeccion_compras' %}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-cart-plus"></i> Proyección de Compras
+                        </a>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'prediccion:predicciones_ventas_periodo' %}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-calendar-range"></i> Predicciones por Período
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'prediccion:predicciones_ventas' %}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-graph-up"></i> Predicciones ML Ventas
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'prediccion:predicciones_demanda' %}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-box-seam"></i> Predicciones Demanda
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'prediccion:anomalias' %}" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-exclamation-octagon"></i> Anomalías
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

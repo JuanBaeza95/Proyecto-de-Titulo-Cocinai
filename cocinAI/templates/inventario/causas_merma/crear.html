@@ -1,0 +1,56 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Agregar una nueva causa de merma{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'inventario:lista_causas_merma' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a la Lista
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle text-primary"></i> Crear Nueva Causa de Merma
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.nombre_causa.id_for_label }}" class="form-label">
+                            {{ form.nombre_causa.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.nombre_causa }}
+                        {% if form.nombre_causa.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.nombre_causa.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.nombre_causa.help_text %}
+                            <div class="form-text">{{ form.nombre_causa.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'inventario:lista_causas_merma' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Crear Causa
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,244 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<a href="{% url 'prediccion:index' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Resumen de Mermas -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stat-card warning">
+            <h6>Total Mermas del Mes</h6>
+            <h2>{{ analisis.total_mermas|floatformat:2 }}</h2>
+            <small>Unidades desperdiciadas</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card info">
+            <h6>Registros de Merma</h6>
+            <h2>{{ analisis.total_registros }}</h2>
+            <small>Eventos registrados</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h6>Promedio por Usuario</h6>
+            <h2>{{ analisis.promedio_usuario|floatformat:2 }}</h2>
+            <small>Unidades promedio</small>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas -->
+{% if analisis.alertas %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Alertas y Anomalías</h5>
+    </div>
+    <div class="card-body">
+        {% for alerta in analisis.alertas %}
+            <div class="alerta">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">{{ alerta.tipo|title }}: {{ alerta.entidad }}</h6>
+                        <p class="mb-0">{{ alerta.mensaje }}</p>
+                        <small class="text-muted">
+                            Cantidad: {{ alerta.cantidad|floatformat:2 }} | Promedio: {{ alerta.promedio|floatformat:2 }}
+                        </small>
+                    </div>
+                    <span class="badge bg-warning text-dark">Alerta</span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Mermas por Usuario -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person"></i> Mermas por Usuario</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-end">Registros</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario, datos in analisis.por_usuario.items %}
+                                <tr>
+                                    <td>{{ usuario }}</td>
+                                    <td class="text-end">{{ datos.cantidad|floatformat:2 }}</td>
+                                    <td class="text-end"><span class="badge bg-secondary">{{ datos.registros }}</span></td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No hay mermas registradas</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mermas por Causa -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Mermas por Causa</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Causa</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-end">Registros</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for causa, datos in analisis.por_causa.items %}
+                                <tr>
+                                    <td>{{ causa }}</td>
+                                    <td class="text-end">{{ datos.cantidad|floatformat:2 }}</td>
+                                    <td class="text-end"><span class="badge bg-secondary">{{ datos.registros }}</span></td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No hay mermas registradas</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Mermas por Proveedor -->
+    {% if analisis.por_proveedor %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-truck"></i> Mermas por Proveedor</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Proveedor</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-end">Lotes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for proveedor, datos in analisis.por_proveedor.items %}
+                                <tr>
+                                    <td>{{ proveedor }}</td>
+                                    <td class="text-end">{{ datos.cantidad|floatformat:2 }}</td>
+                                    <td class="text-end"><span class="badge bg-info">{{ datos.lotes }}</span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mermas por Tipo -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-tags"></i> Mermas por Tipo</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-end">Registros</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tipo, datos in analisis.por_tipo.items %}
+                                <tr>
+                                    <td>{{ tipo }}</td>
+                                    <td class="text-end">{{ datos.cantidad|floatformat:2 }}</td>
+                                    <td class="text-end"><span class="badge bg-secondary">{{ datos.registros }}</span></td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No hay mermas registradas</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tendencias -->
+{% if tendencias.tendencias %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Tendencias de Mermas (Últimos 6 Meses)</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <strong>Tendencia Actual:</strong> 
+            <span class="badge {% if tendencias.tendencia_actual == 'aumentando' %}bg-danger{% elif tendencias.tendencia_actual == 'disminuyendo' %}bg-success{% else %}bg-secondary{% endif %}">
+                {{ tendencias.tendencia_actual|title }}
+            </span>
+            {% if tendencias.cambio_porcentaje != 0 %}
+                ({{ tendencias.cambio_porcentaje }}%)
+            {% endif %}
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Mes</th>
+                        <th class="text-end">Total Mermas</th>
+                        <th class="text-end">Registros</th>
+                        <th class="text-end">Promedio/Registro</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tendencia in tendencias.tendencias %}
+                        <tr>
+                            <td>{{ tendencia.mes }}/{{ tendencia.año }}</td>
+                            <td class="text-end">{{ tendencia.total|floatformat:2 }}</td>
+                            <td class="text-end">{{ tendencia.registros }}</td>
+                            <td class="text-end">{{ tendencia.promedio_por_registro|floatformat:2 }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

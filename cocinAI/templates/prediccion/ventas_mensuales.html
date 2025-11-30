@@ -1,0 +1,103 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <form method="get" class="d-inline">
+        <select name="plato" class="form-select form-select-sm d-inline-block" style="width: auto;" onchange="this.form.submit()">
+            <option value="">Todos los platos</option>
+            {% for plato in platos %}
+                <option value="{{ plato.id_plato }}" {% if plato_seleccionado and plato.id_plato == plato_seleccionado.id_plato %}selected{% endif %}>
+                    {{ plato.nombre_plato }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+    <a href="{% url 'prediccion:index' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-calendar-month"></i> Análisis de Ventas Mensuales</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stat-card success">
+                    <h6>Mes Actual ({{ analisis.mes_actual }}/{{ analisis.mes_actual|add:0 }})</h6>
+                    <h2>{{ analisis.total_actual }}</h2>
+                    <small>Platos vendidos</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card info">
+                    <h6>Mes Anterior ({{ analisis.mes_anterior }}/{{ analisis.mes_anterior|add:0 }})</h6>
+                    <h2>{{ analisis.total_anterior }}</h2>
+                    <small>Platos vendidos</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card {% if analisis.diferencia_total > 0 %}success{% else %}warning{% endif %}">
+                    <h6>Diferencia</h6>
+                    <h2>
+                        {% if analisis.diferencia_total > 0 %}+{% endif %}{{ analisis.diferencia_total }}
+                    </h2>
+                    <small>
+                        {% if analisis.total_anterior > 0 %}
+                            {% widthratio analisis.diferencia_total analisis.total_anterior 100 %}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        {% if analisis.comparacion_platos %}
+            <h5 class="mb-3">Comparación por Plato</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Plato</th>
+                            <th class="text-end">Mes Actual</th>
+                            <th class="text-end">Mes Anterior</th>
+                            <th class="text-end">Diferencia</th>
+                            <th class="text-end">% Cambio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in analisis.comparacion_platos %}
+                            <tr>
+                                <td><strong>{{ item.plato }}</strong></td>
+                                <td class="text-end">{{ item.actual }}</td>
+                                <td class="text-end">{{ item.anterior }}</td>
+                                <td class="text-end">
+                                    <span class="badge {% if item.diferencia > 0 %}bg-success{% elif item.diferencia < 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        {% if item.diferencia > 0 %}+{% endif %}{{ item.diferencia }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    {% if item.anterior > 0 %}
+                                        {% if item.porcentaje_cambio > 0 %}+{% endif %}{{ item.porcentaje_cambio }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No hay datos suficientes para comparar con el mes anterior.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

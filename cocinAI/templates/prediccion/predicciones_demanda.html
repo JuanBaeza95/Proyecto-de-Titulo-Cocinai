@@ -1,0 +1,192 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<a href="{% url 'prediccion:index' %}" class="btn btn-outline-primary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-sliders"></i> Configurar Predicción</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'prediccion:predicciones_demanda' %}" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="dias" class="form-label">Días a Predecir</label>
+                        <select name="dias" id="dias" class="form-select">
+                            <option value="7" {% if dias_prediccion == 7 %}selected{% endif %}>7 días</option>
+                            <option value="14" {% if dias_prediccion == 14 %}selected{% endif %}>14 días</option>
+                            <option value="30" {% if dias_prediccion == 30 %}selected{% endif %}>30 días</option>
+                            <option value="60" {% if dias_prediccion == 60 %}selected{% endif %}>60 días</option>
+                            <option value="90" {% if dias_prediccion == 90 %}selected{% endif %}>90 días</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Predecir
+                        </button>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="text-muted">
+                            <small>
+                                <i class="bi bi-info-circle"></i> 
+                                Predicciones para {{ total_insumos }} insumos | Período: {{ dias_prediccion }} días
+                            </small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if page_obj %}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> 
+            Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ total_insumos }} insumos
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-box-seam"></i> Predicciones de Demanda de Insumos</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Insumo</th>
+                        <th>Unidad</th>
+                        <th>Predicción Diaria</th>
+                        <th>Predicción Total</th>
+                        <th>Confianza</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pred in page_obj %}
+                    <tr>
+                        <td>
+                            <strong>{{ pred.insumo_nombre|default:"N/A" }}</strong>
+                        </td>
+                        <td>{{ pred.unidad_medida|default:"-" }}</td>
+                        <td>
+                            <strong>{{ pred.prediccion_diaria_promedio|floatformat:2 }}</strong>
+                        </td>
+                        <td>
+                            <strong class="text-primary">{{ pred.prediccion_total|floatformat:2 }}</strong>
+                        </td>
+                        <td>
+                            {% if pred.confianza == 'alta' %}
+                                <span class="badge bg-success">Alta</span>
+                            {% elif pred.confianza == 'media' %}
+                                <span class="badge bg-warning">Media</span>
+                            {% else %}
+                                <span class="badge bg-danger">Baja</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pred.error %}
+                                <span class="badge bg-danger" title="{{ pred.error }}">
+                                    <i class="bi bi-exclamation-triangle"></i> Error
+                                </span>
+                            {% elif pred.prediccion_total > 0 %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-check-circle"></i> Disponible
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-dash-circle"></i> Sin datos
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if pred.error %}
+                    <tr class="table-warning">
+                        <td colspan="6">
+                            <small class="text-danger">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                {{ pred.error }}
+                            </small>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            <i class="bi bi-inbox"></i> No hay predicciones disponibles
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Paginación de predicciones">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?dias={{ dias_prediccion }}&page=1">Primera</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?dias={{ dias_prediccion }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Primera</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">Anterior</span>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?dias={{ dias_prediccion }}&page={{ page_obj.next_page_number }}">Siguiente</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?dias={{ dias_prediccion }}&page={{ page_obj.paginator.num_pages }}">Última</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Siguiente</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">Última</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <i class="bi bi-info-circle"></i> No hay predicciones disponibles. Por favor, selecciona los días y haz clic en "Predecir".
+</div>
+{% endif %}
+
+{% if not ml_disponible %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i> 
+    <strong>Advertencia:</strong> Machine Learning no está disponible. Por favor, instala las dependencias necesarias (scikit-learn, pandas, numpy).
+</div>
+{% endif %}
+{% endblock %}
+

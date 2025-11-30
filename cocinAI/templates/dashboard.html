@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - CocinAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+        .user-info {
+            float: right;
+            margin-top: 0.5rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .dashboard-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .card-title {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+        .card-content {
+            color: #666;
+            line-height: 1.6;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .nav-link {
+            background: #667eea;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .nav-link:hover {
+            background: #5a6fd8;
+        }
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+        .welcome-message {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .welcome-message h2 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🍳 CocinAI</h1>
+        <div class="user-info">
+            <span>Bienvenido, <strong>{{ username }}</strong></span>
+            <a href="{% url 'logout' %}" class="logout-btn">Cerrar Sesión</a>
+        </div>
+        <div style="clear: both;"></div>
+    </div>
+
+    <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="margin-top: 1rem;">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <div class="welcome-message">
+            <h2>🎉 ¡Bienvenido al Dashboard de CocinAI!</h2>
+            <p>Sistema de gestión inteligente para tu cocina</p>
+        </div>
+
+        <div class="dashboard-grid">
+            {% if user.is_superuser or 'inventario' in grupos_usuario %}
+            <div class="dashboard-card">
+                <h3 class="card-title">📦 Inventario</h3>
+                <div class="card-content">
+                    <p>Gestiona el inventario de ingredientes y productos de tu cocina.</p>
+                    <div class="nav-links">
+                        <a href="{% url 'inventario:index' %}" class="nav-link">Ver Inventario</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if user.is_superuser or 'compras' in grupos_usuario %}
+            <div class="dashboard-card">
+                <h3 class="card-title">🛒 Compras</h3>
+                <div class="card-content">
+                    <p>Administra las compras de ingredientes y suministros.</p>
+                    <div class="nav-links">
+                        <a href="{% url 'compras:index' %}" class="nav-link">Ver Compras</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if user.is_superuser or 'produccion' in grupos_usuario %}
+            <div class="dashboard-card">
+                <h3 class="card-title">👨‍🍳 Producción</h3>
+                <div class="card-content">
+                    <p>Controla la producción de platos y recetas.</p>
+                    <div class="nav-links">
+                        <a href="{% url 'produccion:index' %}" class="nav-link">Ver Producción</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if user.is_superuser or 'ventas' in grupos_usuario %}
+            <div class="dashboard-card">
+                <h3 class="card-title">💰 Ventas</h3>
+                <div class="card-content">
+                    <p>Gestiona las ventas y facturación.</p>
+                    <div class="nav-links">
+                        <a href="{% url 'ventas:index' %}" class="nav-link">Ver Ventas</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if user.is_superuser or 'prediccion' in grupos_usuario %}
+            <div class="dashboard-card">
+                <h3 class="card-title">🔮 Predicciones</h3>
+                <div class="card-content">
+                    <p>Analiza tendencias y predice demandas futuras.</p>
+                    <div class="nav-links">
+                        <a href="{% url 'prediccion:index' %}" class="nav-link">Ver Predicciones</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if user.is_superuser or 'usuarios' in grupos_usuario %}
+            <div class="dashboard-card">
+                <h3 class="card-title">👥 Usuarios</h3>
+                <div class="card-content">
+                    <p>Administra usuarios y permisos del sistema.</p>
+                    <div class="nav-links">
+                        <a href="{% url 'usuarios:index' %}" class="nav-link">Ver Usuarios</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Modal de Productos Vencidos -->
+    {% include 'inventario/modal_vencidos.html' %}
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-cerrar mensajes después de 5 segundos
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>
+

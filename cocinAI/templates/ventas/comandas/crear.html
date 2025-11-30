@@ -1,0 +1,357 @@
+{% extends 'ventas/base.html' %}
+
+{% block page_subtitle %}Crear una nueva comanda{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'ventas:lista_comandas' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a la Lista
+</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Agregar fila de detalle dinámicamente
+            const addDetailBtn = document.getElementById('add-detail');
+            const formsetContainer = document.getElementById('formset-container');
+            const totalFormsInput = document.getElementById('id_detallecomanda_set-TOTAL_FORMS');
+            const initialFormsInput = document.getElementById('id_detallecomanda_set-INITIAL_FORMS');
+            let formCount = totalFormsInput ? parseInt(totalFormsInput.value) : {{ formset.total_form_count }};
+            
+            console.log('[DEBUG] Formset inicializado:', {
+                totalForms: formCount,
+                initialForms: initialFormsInput ? parseInt(initialFormsInput.value) : 0
+            });
+    
+    if (addDetailBtn && formsetContainer) {
+        addDetailBtn.addEventListener('click', function() {
+            // Buscar el último formulario como template
+            const forms = formsetContainer.querySelectorAll('.detail-form');
+            if (forms.length === 0) return;
+            
+            const template = forms[forms.length - 1].cloneNode(true);
+            const newIndex = formCount;
+            
+            // Actualizar todos los nombres de campos, IDs y labels
+            // IMPORTANTE: Necesitamos actualizar TODOS los campos, incluyendo los hidden
+            const allElements = template.querySelectorAll('input, select, textarea, label');
+            console.log(`[DEBUG] Actualizando ${allElements.length} elementos para el formulario ${newIndex}`);
+            
+            allElements.forEach(function(element) {
+                // Actualizar atributo 'name' - buscar patrón detallecomanda_set-N-campo
+                if (element.name) {
+                    const oldName = element.name;
+                    // Reemplazar cualquier número en el índice
+                    element.name = element.name.replace(/detallecomanda_set-\d+-/g, `detallecomanda_set-${newIndex}-`);
+                    if (oldName !== element.name) {
+                        console.log(`[DEBUG] Campo renombrado: ${oldName} -> ${element.name}`);
+                    }
+                }
+                
+                // Actualizar atributo 'id' - buscar patrón id_detallecomanda_set_N_campo
+                if (element.id) {
+                    const oldId = element.id;
+                    element.id = element.id.replace(/id_detallecomanda_set_\d+_/g, `id_detallecomanda_set_${newIndex}_`);
+                    if (oldId !== element.id) {
+                        console.log(`[DEBUG] ID actualizado: ${oldId} -> ${element.id}`);
+                    }
+                }
+                
+                // Actualizar 'for' en labels
+                if (element.tagName === 'LABEL' && element.getAttribute('for')) {
+                    const forAttr = element.getAttribute('for');
+                    const newFor = forAttr.replace(/id_detallecomanda_set_\d+_/g, `id_detallecomanda_set_${newIndex}_`);
+                    element.setAttribute('for', newFor);
+                }
+            });
+            
+            // También actualizar cualquier campo hidden que pueda tener el índice
+            template.querySelectorAll('input[type="hidden"]').forEach(function(input) {
+                if (input.name && input.name.includes('detallecomanda_set-')) {
+                    input.name = input.name.replace(/detallecomanda_set-\d+-/g, `detallecomanda_set-${newIndex}-`);
+                }
+            });
+            
+            // Debug: verificar que los nombres se actualizaron correctamente
+            console.log(`Formulario ${newIndex} agregado. Campos:`, 
+                Array.from(template.querySelectorAll('input, select, textarea'))
+                    .map(el => el.name)
+                    .filter(name => name && name.includes('detallecomanda_set'))
+            );
+            
+            // Limpiar valores de los campos
+            template.querySelectorAll('select').forEach(function(select) {
+                select.value = '';
+            });
+            template.querySelectorAll('input[type="number"]').forEach(function(input) {
+                input.value = '1';
+            });
+            template.querySelectorAll('textarea').forEach(function(textarea) {
+                textarea.value = '';
+            });
+            
+            // Desmarcar DELETE si existe
+            const deleteCheck = template.querySelector('input[name*="-DELETE"]');
+            if (deleteCheck) {
+                deleteCheck.checked = false;
+            }
+            
+            // Limpiar hidden ID si existe
+            const hiddenId = template.querySelector('input[type="hidden"][name*="-id"]');
+            if (hiddenId) {
+                hiddenId.value = '';
+            }
+            
+            // Agregar el nuevo formulario
+            formsetContainer.appendChild(template);
+            formCount++;
+            
+            // Actualizar TOTAL_FORMS
+            if (totalFormsInput) {
+                totalFormsInput.value = formCount;
+                console.log('[DEBUG] TOTAL_FORMS actualizado a:', formCount);
+            }
+            
+            // Verificar que todos los campos tienen los nombres correctos
+            const allFields = template.querySelectorAll('input, select, textarea');
+            const fieldNames = Array.from(allFields)
+                .map(el => el.name)
+                .filter(name => name && name.includes('detallecomanda_set'));
+            console.log('[DEBUG] Nombres de campos en el nuevo formulario:', fieldNames);
+        });
+    }
+    
+    // Función para verificar el formset antes de enviar
+    function verificarFormset() {
+        const totalFormsInput = document.getElementById('id_detallecomanda_set-TOTAL_FORMS');
+        const totalForms = totalFormsInput ? parseInt(totalFormsInput.value) : 0;
+        
+        // Guardar información de debug en localStorage para que persista después del redirect
+        const debugInfo = {
+            totalForms: totalForms,
+            timestamp: new Date().toISOString(),
+            forms: []
+        };
+        
+        // Contar formularios con datos
+        let formsConDatos = 0;
+        for (let i = 0; i < totalForms; i++) {
+            const platoSelect = document.querySelector(`select[name="detallecomanda_set-${i}-id_plato"]`);
+            const cantidadInput = document.querySelector(`input[name="detallecomanda_set-${i}-cantidad"]`);
+            const deleteCheck = document.querySelector(`input[name="detallecomanda_set-${i}-DELETE"]`);
+            
+            const formInfo = {
+                index: i,
+                plato: platoSelect ? platoSelect.value : null,
+                cantidad: cantidadInput ? cantidadInput.value : null,
+                delete: deleteCheck ? deleteCheck.checked : false,
+                platoName: platoSelect ? platoSelect.name : 'NO ENCONTRADO',
+                cantidadName: cantidadInput ? cantidadInput.name : 'NO ENCONTRADO'
+            };
+            
+            debugInfo.forms.push(formInfo);
+            
+            if (platoSelect && cantidadInput && !deleteCheck?.checked) {
+                const platoValue = platoSelect.value;
+                const cantidadValue = cantidadInput.value;
+                if (platoValue && cantidadValue) {
+                    formsConDatos++;
+                    console.log(`[DEBUG] Form ${i} tiene datos: plato=${platoValue}, cantidad=${cantidadValue}`);
+                }
+            }
+        }
+        
+        debugInfo.formsConDatos = formsConDatos;
+        
+        // Guardar en localStorage
+        localStorage.setItem('comanda_debug', JSON.stringify(debugInfo));
+        
+        console.log(`[DEBUG] Total forms: ${totalForms}, Forms con datos: ${formsConDatos}`);
+        console.log('[DEBUG] Información guardada en localStorage con clave "comanda_debug"');
+        
+        // Mostrar todos los campos del formset
+        const allFields = document.querySelectorAll('input[name*="detallecomanda_set"], select[name*="detallecomanda_set"]');
+        const fieldsInfo = Array.from(allFields).map(f => ({name: f.name, value: f.value, type: f.type || f.tagName}));
+        console.log('[DEBUG] Todos los campos del formset:', fieldsInfo);
+        
+        // También guardar los campos en localStorage
+        localStorage.setItem('comanda_fields', JSON.stringify(fieldsInfo));
+        
+        if (formsConDatos === 0) {
+            alert('Debe agregar al menos un plato a la comanda.');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Función para mostrar información de debug guardada (ejecutar en consola después del redirect)
+    window.mostrarDebugComanda = function() {
+        const debugInfo = localStorage.getItem('comanda_debug');
+        const fieldsInfo = localStorage.getItem('comanda_fields');
+        if (debugInfo) {
+            console.log('[DEBUG RECUPERADO] Información del formset:', JSON.parse(debugInfo));
+        }
+        if (fieldsInfo) {
+            console.log('[DEBUG RECUPERADO] Campos del formset:', JSON.parse(fieldsInfo));
+        }
+        return {debug: debugInfo ? JSON.parse(debugInfo) : null, fields: fieldsInfo ? JSON.parse(fieldsInfo) : null};
+    };
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle text-primary"></i> Crear Nueva Comanda
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Errores del formset -->
+                {% if formset.non_form_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in formset.non_form_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <form method="post" id="comanda-form" onsubmit="return verificarFormset()">
+                    {% csrf_token %}
+                    
+                    <!-- Información de la Comanda -->
+                    <h6 class="mb-3"><i class="bi bi-info-circle"></i> Información de la Comanda</h6>
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.id_ubicacion.id_for_label }}" class="form-label">
+                                {{ form.id_ubicacion.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.id_ubicacion }}
+                            {% if form.id_ubicacion.help_text %}
+                                <div class="form-text">{{ form.id_ubicacion.help_text }}</div>
+                            {% endif %}
+                            {% if form.id_ubicacion.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.id_ubicacion.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.numero_mesa.id_for_label }}" class="form-label">
+                                {{ form.numero_mesa.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.numero_mesa }}
+                            {% if form.numero_mesa.help_text %}
+                                <div class="form-text">{{ form.numero_mesa.help_text }}</div>
+                            {% endif %}
+                            {% if form.numero_mesa.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.numero_mesa.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-12 mb-3">
+                            <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                                {{ form.observaciones.label }}
+                            </label>
+                            {{ form.observaciones }}
+                            {% if form.observaciones.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.observaciones.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Detalles de la Comanda (Platos) -->
+                    <h6 class="mb-3"><i class="bi bi-list-ul"></i> Platos de la Comanda</h6>
+                    <div id="formset-container">
+                        {{ formset.management_form }}
+                        {% for detalle_form in formset %}
+                            <div class="card mb-3 detail-form">
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-5">
+                                            <label for="{{ detalle_form.id_plato.id_for_label }}" class="form-label">
+                                                Plato <span class="text-danger">*</span>
+                                            </label>
+                                            {{ detalle_form.id_plato }}
+                                            {% if detalle_form.id_plato.errors %}
+                                                <div class="text-danger small mt-1">
+                                                    {% for error in detalle_form.id_plato.errors %}
+                                                        <div>{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-md-2">
+                                            <label for="{{ detalle_form.cantidad.id_for_label }}" class="form-label">
+                                                Cantidad <span class="text-danger">*</span>
+                                            </label>
+                                            {{ detalle_form.cantidad }}
+                                            {% if detalle_form.cantidad.errors %}
+                                                <div class="text-danger small mt-1">
+                                                    {% for error in detalle_form.cantidad.errors %}
+                                                        <div>{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <label for="{{ detalle_form.observaciones.id_for_label }}" class="form-label">
+                                                Observaciones
+                                            </label>
+                                            {{ detalle_form.observaciones }}
+                                        </div>
+                                        
+                                        <div class="col-md-1 d-flex align-items-end">
+                                            {% if formset.can_delete %}
+                                                {{ detalle_form.DELETE }}
+                                                <label for="{{ detalle_form.DELETE.id_for_label }}" class="btn btn-outline-danger btn-sm ms-2" title="Eliminar">
+                                                    <i class="bi bi-trash"></i>
+                                                </label>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <button type="button" id="add-detail" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle"></i> Agregar Otro Plato
+                        </button>
+                    </div>
+                    
+                    <!-- Botones de acción -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'ventas:lista_comandas' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Crear Comanda
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

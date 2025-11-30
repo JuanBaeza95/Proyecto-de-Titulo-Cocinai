@@ -1,0 +1,161 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <form method="get" class="d-inline">
+        <div class="input-group input-group-sm">
+            <span class="input-group-text">Días:</span>
+            <input type="number" name="dias" class="form-control" value="{{ dias_proyeccion }}" min="7" max="90" style="width: 80px;">
+            <span class="input-group-text">Modelo:</span>
+            <select name="modelo_tipo" class="form-select" style="width: auto;">
+                {% for modelo in modelos_disponibles %}
+                <option value="{{ modelo }}" {% if modelo == modelo_tipo %}selected{% endif %}>
+                    {{ modelo|title }}
+                    {% if modelo == 'auto' %}(Recomendado){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-outline-primary">Actualizar</button>
+        </div>
+    </form>
+    <a href="{% url 'prediccion:index' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <h6>Total Insumos</h6>
+            <h2>{{ total_insumos }}</h2>
+            <small>Requieren compra</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <h6>Urgentes</h6>
+            <h2>{{ insumos_urgentes }}</h2>
+            <small>< 7 días stock</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <h6>Medios</h6>
+            <h2>{{ insumos_medios }}</h2>
+            <small>7-15 días stock</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <h6>Bajos</h6>
+            <h2>{{ insumos_bajos }}</h2>
+            <small>> 15 días stock</small>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Proyecciones -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-cart-plus"></i> Proyección de Compras ({{ dias_proyeccion }} días)
+            <small class="text-muted ms-2">Método: {{ metodo_usado }}</small>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Insumo</th>
+                            <th class="text-end">Stock Actual</th>
+                            <th class="text-end">Días Stock</th>
+                            <th class="text-end">A Comprar</th>
+                            <th>Urgencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for proyeccion in page_obj %}
+                            <tr>
+                                <td>
+                                    <strong>{{ proyeccion.insumo_nombre }}</strong><br>
+                                    <small class="text-muted">{{ proyeccion.unidad_medida }}</small>
+                                </td>
+                                <td class="text-end">{{ proyeccion.stock_actual|floatformat:2 }}</td>
+                                <td class="text-end">
+                                    <span class="badge {% if proyeccion.dias_stock_restante < 7 %}bg-danger{% elif proyeccion.dias_stock_restante < 15 %}bg-warning{% else %}bg-success{% endif %}">
+                                        {{ proyeccion.dias_stock_restante|floatformat:0 }} días
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <strong class="text-primary">{{ proyeccion.cantidad_a_comprar|floatformat:2 }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge {% if proyeccion.urgencia == 'alta' %}bg-danger{% elif proyeccion.urgencia == 'media' %}bg-warning{% else %}bg-success{% endif %}">
+                                        {{ proyeccion.urgencia|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <div class="card-footer">
+                <nav aria-label="Navegación de páginas">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1&dias={{ dias_proyeccion }}">Primera</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&dias={{ dias_proyeccion }}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}&dias={{ dias_proyeccion }}">Siguiente</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&dias={{ dias_proyeccion }}">Última</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <p class="text-muted mt-3">No hay insumos que requieran compra según la proyección.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-info-circle"></i> Información</h6>
+    </div>
+    <div class="card-body">
+        <p class="mb-0">
+            <strong>Proyección basada en:</strong> Consumo histórico de los últimos 90 días, mermas promedio y stock actual.
+            La urgencia se calcula según los días de stock restante estimado.
+        </p>
+    </div>
+</div>
+{% endblock %}
+

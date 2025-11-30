@@ -1,0 +1,120 @@
+{% extends 'compras/base.html' %}
+
+{% block page_subtitle %}Módulo de gestión de compras{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'compras:crear_orden' %}" class="btn btn-primary">
+    <i class="bi bi-plus-circle"></i> Nueva Orden de Compra
+</a>
+<a href="{% url 'compras:lista_ordenes' %}" class="btn btn-outline-primary">
+    <i class="bi bi-list-ul"></i> Ver Todas las Órdenes
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Acceso rápido -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-file-earmark-plus display-1 text-primary"></i>
+                </div>
+                <h5 class="card-title">Nueva Orden</h5>
+                <p class="card-text text-muted">Crea una nueva orden de compra a un proveedor.</p>
+                <a href="{% url 'compras:crear_orden' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Crear Orden
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-list-ul display-1 text-info"></i>
+                </div>
+                <h5 class="card-title">Ver Órdenes</h5>
+                <p class="card-text text-muted">Consulta todas las órdenes de compra.</p>
+                <a href="{% url 'compras:lista_ordenes' %}" class="btn btn-info">
+                    <i class="bi bi-list-ul"></i> Ver Todas
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-truck display-1 text-success"></i>
+                </div>
+                <h5 class="card-title">Proveedores</h5>
+                <p class="card-text text-muted">Gestiona los proveedores del sistema.</p>
+                <a href="{% url 'inventario:lista_proveedores' %}" class="btn btn-success">
+                    <i class="bi bi-truck"></i> Ver Proveedores
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Órdenes recientes -->
+{% if ordenes_recientes %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history"></i> Órdenes Recientes
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Proveedor</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for orden in ordenes_recientes %}
+                            <tr>
+                                <td><strong>#{{ orden.id_orden_compra }}</strong></td>
+                                <td>{{ orden.id_proveedor.nombre_proveedor }}</td>
+                                <td>{{ orden.fecha_pedido|date:"d/m/Y" }}</td>
+                                <td>
+                                    {% if orden.estado == 'pendiente' %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    {% elif orden.estado == 'en_proceso' %}
+                                        <span class="badge bg-info">En Proceso</span>
+                                    {% elif orden.estado == 'recibida' %}
+                                        <span class="badge bg-success">Recibida</span>
+                                    {% elif orden.estado == 'cancelada' %}
+                                        <span class="badge bg-danger">Cancelada</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ orden.estado }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'compras:detalle_orden' orden.id_orden_compra %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Gestionar mermas registradas{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group">
+    <a href="{% url 'inventario:crear_merma_lote' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Mermar Lote
+    </a>
+    <a href="{% url 'inventario:crear_merma_plato' %}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Mermar Plato
+    </a>
+</div>
+<a href="{% url 'inventario:index' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="busqueda" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                       value="{{ busqueda }}" placeholder="Insumo, plato o causa...">
+            </div>
+            <div class="col-md-2">
+                <label for="tipo_merma" class="form-label">Tipo</label>
+                <select class="form-select" id="tipo_merma" name="tipo_merma">
+                    <option value="">Todos</option>
+                    <option value="lote" {% if tipo_merma == 'lote' %}selected{% endif %}>Lote</option>
+                    <option value="plato" {% if tipo_merma == 'plato' %}selected{% endif %}>Plato</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="causa" class="form-label">Causa</label>
+                <select class="form-select" id="causa" name="causa">
+                    <option value="">Todas</option>
+                    {% for causa in causas %}
+                        <option value="{{ causa.id_causa }}" {% if causa.id_causa|stringformat:"s" == causa_id %}selected{% endif %}>
+                            {{ causa.nombre_causa }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="fecha_desde" class="form-label">
+                    <i class="bi bi-calendar-event"></i> Fecha Desde
+                </label>
+                <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" 
+                       value="{{ fecha_desde }}">
+            </div>
+            <div class="col-md-2">
+                <label for="fecha_hasta" class="form-label">
+                    <i class="bi bi-calendar-event"></i> Fecha Hasta
+                </label>
+                <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" 
+                       value="{{ fecha_hasta }}">
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de mermas -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Lista de Mermas</h5>
+        <span class="badge bg-primary">{{ page_obj.paginator.count }} mermas</span>
+    </div>
+    <div class="card-body p-0">
+        {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tipo</th>
+                            <th>Item</th>
+                            <th>Cantidad</th>
+                            <th>Causa</th>
+                            <th>Usuario</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for merma in page_obj %}
+                        <tr>
+                            <td><strong>{{ merma.id_merma }}</strong></td>
+                            <td>
+                                {% if merma.tipo_merma == 'lote' %}
+                                    <span class="badge bg-info">Lote</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Plato</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if merma.id_lote %}
+                                    <strong>{{ merma.id_lote.id_insumo.nombre_insumo }}</strong>
+                                    <br><small class="text-muted">Lote: {{ merma.id_lote.numero_lote }}</small>
+                                {% elif merma.id_plato_producido %}
+                                    <strong>{{ merma.id_plato_producido.id_plato.nombre_plato }}</strong>
+                                    <br><small class="text-muted">Estado: {{ merma.id_plato_producido.get_estado_display }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ merma.cantidad_desperdiciada }}</strong>
+                                {% if merma.id_lote %}
+                                    <small class="text-muted">{{ merma.id_lote.id_insumo.unidad_medida }}</small>
+                                {% else %}
+                                    <small class="text-muted">unidades</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ merma.id_causa.nombre_causa }}</span>
+                            </td>
+                            <td>{{ merma.id_usuario.nombre }}</td>
+                            <td>{{ merma.fecha_registro|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <div class="card-footer">
+                <nav aria-label="Paginación de mermas">
+                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo_merma %}&tipo_merma={{ tipo_merma }}{% endif %}{% if causa_id %}&causa={{ causa_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">Primera</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo_merma %}&tipo_merma={{ tipo_merma }}{% endif %}{% if causa_id %}&causa={{ causa_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo_merma %}&tipo_merma={{ tipo_merma }}{% endif %}{% if causa_id %}&causa={{ causa_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">Siguiente</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo_merma %}&tipo_merma={{ tipo_merma }}{% endif %}{% if causa_id %}&causa={{ causa_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">Última</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-exclamation-triangle display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">No se encontraron mermas</h4>
+                <p class="text-muted">No hay mermas que coincidan con los filtros aplicados.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

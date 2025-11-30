@@ -1,0 +1,164 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<a href="{% url 'prediccion:index' %}" class="btn btn-secondary me-2">
+    <i class="bi bi-arrow-left"></i> Volver al Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-gear"></i> Reentrenar Modelo de Machine Learning
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Esta herramienta permite reentrenar el modelo de Machine Learning manualmente con nuevos datos.
+                    El modelo se recalcula automáticamente cada vez que se hacen predicciones, pero puedes forzar
+                    un reentrenamiento aquí para actualizar el modelo con los datos más recientes.
+                </p>
+
+                {% if metricas_actuales %}
+                <div class="alert alert-info mb-4">
+                    <h6><i class="bi bi-info-circle"></i> Métricas del Modelo Actual</h6>
+                    {% if modelo_guardado_info.exists %}
+                    <div class="alert alert-success mb-2">
+                        <i class="bi bi-check-circle"></i> 
+                        <strong>Modelo cargado desde archivo</strong> 
+                        (entrenado hace {{ modelo_guardado_info.dias_antiguedad }} días)
+                        {% if modelo_guardado_info.fecha_entrenamiento %}
+                        <br><small>Fecha de entrenamiento: {{ modelo_guardado_info.fecha_entrenamiento|date:"Y-m-d H:i" }}</small>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mb-2">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        <strong>No hay modelo guardado</strong> - Se entrenará un nuevo modelo
+                    </div>
+                    {% endif %}
+                    <div class="row mt-2">
+                        <div class="col-md-3">
+                            <strong>R² Score:</strong> {{ metricas_actuales.r2|default:"N/A" }}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>MAE:</strong> {{ metricas_actuales.mae|default:"N/A" }}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>RMSE:</strong> {{ metricas_actuales.rmse|default:"N/A" }}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>MAPE:</strong> {{ metricas_actuales.mape|default:"N/A" }}%
+                        </div>
+                    </div>
+                    {% if modelo_info %}
+                    <div class="row mt-2">
+                        <div class="col-md-4">
+                            <small><strong>Modelo usado:</strong> {{ modelo_info.tipo }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <small><strong>Datos entrenamiento:</strong> {{ modelo_info.datos_entrenamiento }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <small><strong>Datos prueba:</strong> {{ modelo_info.datos_prueba }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <form method="POST" action="{% url 'prediccion:reentrenar_modelo' %}">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="plato" class="form-label">
+                                <i class="bi bi-egg-fried"></i> Plato (Opcional)
+                            </label>
+                            <select class="form-select" id="plato" name="plato">
+                                <option value="">Todos los platos</option>
+                                {% for plato in platos %}
+                                <option value="{{ plato.id_plato }}">{{ plato.nombre_plato }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">
+                                Si seleccionas un plato específico, el modelo se entrenará solo para ese plato.
+                                Dejar en blanco para entrenar con todos los platos.
+                            </small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="modelo_tipo" class="form-label">
+                                <i class="bi bi-diagram-3"></i> Tipo de Modelo
+                            </label>
+                            <select class="form-select" id="modelo_tipo" name="modelo_tipo">
+                                {% for modelo in modelos_disponibles %}
+                                <option value="{{ modelo }}" {% if modelo == 'auto' %}selected{% endif %}>
+                                    {{ modelo|title }}
+                                    {% if modelo == 'auto' %}(Recomendado - Selección automática){% endif %}
+                                    {% if modelo == 'xgboost' %}(Más rápido y preciso){% endif %}
+                                    {% if modelo == 'lightgbm' %}(Rápido y eficiente){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">
+                                'auto' selecciona automáticamente el mejor modelo disponible.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dias_historia" class="form-label">
+                                <i class="bi bi-calendar-range"></i> Días de Historia
+                            </label>
+                            <input type="number" class="form-control" id="dias_historia" name="dias_historia" 
+                                   value="365" min="30" max="730" required>
+                            <small class="form-text text-muted">
+                                Cantidad de días históricos a usar para entrenar (30-730 días).
+                                Más días = más datos pero más tiempo de entrenamiento.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Nota:</strong> El reentrenamiento puede tardar varios segundos o minutos dependiendo
+                        de la cantidad de datos. El modelo se entrenará con los datos más recientes disponibles.
+                        <br><br>
+                        <strong>Persistencia:</strong> El modelo entrenado se guardará automáticamente en un archivo .pkl
+                        en el directorio <code>{{ models_dir }}</code> y se reutilizará en futuras predicciones
+                        (válido por 7 días, luego se reentrena automáticamente).
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'prediccion:index' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-arrow-repeat"></i> Reentrenar Modelo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not ml_disponible %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Machine Learning no disponible:</strong> 
+            Las librerías necesarias (scikit-learn, pandas, numpy) no están instaladas.
+            Por favor, instálalas ejecutando: <code>pip install scikit-learn pandas numpy</code>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

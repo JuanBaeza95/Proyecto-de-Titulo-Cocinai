@@ -1,0 +1,156 @@
+{% extends 'produccion/base.html' %}
+
+{% block page_subtitle %}Módulo de gestión de producción y recetas{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver al Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Recetario -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-journal-text display-1 text-primary"></i>
+                </div>
+                <h5 class="card-title">Recetario</h5>
+                <p class="card-text text-muted">Gestiona las recetas de los platos, definiendo los ingredientes y cantidades necesarias.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'produccion:lista_recetas' %}" class="btn btn-primary">
+                        <i class="bi bi-list-ul"></i> Ver Recetas
+                    </a>
+                    <a href="{% url 'produccion:crear_receta' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Crear Receta
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gestión de Platos -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-egg-fried display-1 text-success"></i>
+                </div>
+                <h5 class="card-title">Platos</h5>
+                <p class="card-text text-muted">Gestiona los platos del menú del restaurante.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'produccion:lista_platos' %}" class="btn btn-success">
+                        <i class="bi bi-list-ul"></i> Ver Platos
+                    </a>
+                    <a href="{% url 'produccion:crear_plato' %}" class="btn btn-outline-success">
+                        <i class="bi bi-plus-circle"></i> Crear Plato
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platos Producidos -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-cup-hot display-1 text-warning"></i>
+                </div>
+                <h5 class="card-title">Platos Producidos</h5>
+                <p class="card-text text-muted">Gestiona la producción de platos, desde cocina hasta entrega al cliente.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'produccion:lista_platos_producidos' %}" class="btn btn-warning">
+                        <i class="bi bi-list-ul"></i> Ver Producción
+                    </a>
+                    <a href="{% url 'produccion:crear_plato_producido' %}" class="btn btn-outline-warning">
+                        <i class="bi bi-plus-circle"></i> Producir Plato
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comandas -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-receipt display-1 text-info"></i>
+                </div>
+                <h5 class="card-title">Comandas</h5>
+                <p class="card-text text-muted">Ver comandas pendientes y actualizar el estado de los platos mientras se preparan.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'produccion:lista_comandas' %}" class="btn btn-info">
+                        <i class="bi bi-list-ul"></i> Ver Comandas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen de Recetas -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Resumen de Recetas</h5>
+            </div>
+            <div class="card-body">
+                {% if platos_con_recetas %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Plato</th>
+                                    <th>Número de Ingredientes</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for plato in platos_con_recetas %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ plato.nombre_plato }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ plato.num_ingredientes }} ingrediente{{ plato.num_ingredientes|pluralize }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            {% if plato.num_ingredientes > 0 %}
+                                                <a href="{% url 'produccion:detalle_receta' plato.id_plato %}" 
+                                                   class="btn btn-outline-info" title="Ver Detalle">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a href="{% url 'produccion:editar_receta' plato.id_plato %}" 
+                                                   class="btn btn-outline-primary" title="Editar">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            {% else %}
+                                                <a href="{% url 'produccion:crear_receta' %}?plato_id={{ plato.id_plato }}" 
+                                                   class="btn btn-outline-success" title="Crear Receta">
+                                                    <i class="bi bi-plus-circle"></i> Crear
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-journal-x display-1 text-muted"></i>
+                        <p class="text-muted mt-3">No hay platos registrados. Primero debes crear platos en el módulo de inventario.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends 'ventas/base.html' %}
+
+{% block page_subtitle %}Mesas con platos pendientes de venta{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'ventas:index' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="ubicacion" class="form-label">Ubicación</label>
+                <select class="form-select" id="ubicacion" name="ubicacion">
+                    <option value="">Todas las ubicaciones</option>
+                    {% for u in ubicaciones_mesa %}
+                        <option value="{{ u.id_ubicacion }}" {% if u.id_ubicacion|stringformat:"s" == ubicacion_id %}selected{% endif %}>
+                            {{ u.nombre_ubicacion }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="numero_mesa" class="form-label">Número de Mesa</label>
+                <input type="text" class="form-control" id="numero_mesa" name="numero_mesa" 
+                       value="{{ numero_mesa_filtro }}" placeholder="Buscar por número de mesa...">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <a href="{% url 'ventas:lista_mesas_activas' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Limpiar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Mesas con platos -->
+{% if mesas %}
+    {% for mesa in mesas %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0">
+                        <i class="bi bi-table"></i> 
+                        {{ mesa.ubicacion.nombre_ubicacion }}
+                        {% if mesa.numero_mesa != 'Sin número' %}
+                            - Mesa {{ mesa.numero_mesa }}
+                        {% endif %}
+                    </h5>
+                </div>
+                <div>
+                    <span class="badge bg-light text-dark">{{ mesa.platos|length }} plato(s)</span>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'ventas:cerrar_venta_mesa' %}" id="form-mesa-{{ forloop.counter }}">
+                {% csrf_token %}
+                <input type="hidden" name="ubicacion_id" value="{{ mesa.ubicacion.id_ubicacion }}">
+                <input type="hidden" name="numero_mesa" value="{{ mesa.numero_mesa }}">
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="50">
+                                    <input type="checkbox" class="form-check-input" 
+                                           onchange="toggleAll(this, 'mesa-{{ forloop.counter }}')">
+                                </th>
+                                <th>Plato</th>
+                                <th>Fecha Producción</th>
+                                <th>Fecha Movimiento</th>
+                                <th>Usuario Producción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plato in mesa.platos %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="platos_ids" 
+                                           value="{{ plato.id_plato_producido }}" 
+                                           class="form-check-input plato-checkbox mesa-{{ forloop.parentloop.counter }}">
+                                </td>
+                                <td>
+                                    <strong>{{ plato.id_plato.nombre_plato }}</strong>
+                                </td>
+                                <td>{{ plato.fecha_produccion|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% for movimiento in plato.movimientos_mesa.all %}
+                                        {% if forloop.first %}
+                                            {{ movimiento.fecha_movimiento|date:"d/m/Y H:i" }}
+                                        {% endif %}
+                                    {% empty %}
+                                        -
+                                    {% endfor %}
+                                </td>
+                                <td>{{ plato.id_usuario.username }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('¿Está seguro de cerrar la venta de esta mesa?')">
+                        <i class="bi bi-cash-coin"></i> Cerrar Venta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <p class="text-muted mt-3 mb-0">No hay mesas con platos pendientes de venta.</p>
+            <p class="text-muted small mt-2">
+                Los platos deben estar en estado "En Mesa" para aparecer aquí. 
+                Asegúrate de mover los platos desde cocina a mesa primero.
+            </p>
+        </div>
+    </div>
+{% endif %}
+
+<script>
+function toggleAll(checkbox, mesaClass) {
+    const checkboxes = document.querySelectorAll(`.plato-checkbox.${mesaClass}`);
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+}
+</script>
+{% endblock %}
+

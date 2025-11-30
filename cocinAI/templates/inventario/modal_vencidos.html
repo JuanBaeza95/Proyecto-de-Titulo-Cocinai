@@ -1,0 +1,219 @@
+<!-- Modal para Productos Vencidos -->
+<div class="modal fade" id="modalProductosVencidos" tabindex="-1" aria-labelledby="modalProductosVencidosLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalProductosVencidosLabel">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Productos Vencidos Detectados
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle"></i> 
+                    Se han detectado productos vencidos en el inventario. Por favor, revisa y merma los productos necesarios.
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Lote</th>
+                                <th>Insumo</th>
+                                <th class="text-end">Cantidad</th>
+                                <th>Ubicación</th>
+                                <th class="text-center">Fecha Vencimiento</th>
+                                <th class="text-center">Días Vencido</th>
+                                <th class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaProductosVencidos">
+                            <!-- Se llenará dinámicamente con JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="noMostrarVencidos">
+                    <label class="form-check-label" for="noMostrarVencidos">
+                        No volver a mostrar esta alerta (solo para estos productos)
+                    </label>
+                    <small class="form-text text-muted d-block">
+                        Si aparece un nuevo producto vencido, la alerta se mostrará nuevamente.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    let productosVencidosMostrados = false;
+    let lotesVencidosActuales = [];
+    let verificandoVencidos = false;
+    
+    // Función para verificar y mostrar productos vencidos
+    function verificarProductosVencidos() {
+        // Solo verificar si estamos en una página autenticada (no login)
+        if (window.location.pathname.includes('/login') || 
+            window.location.pathname.includes('/accounts/login')) {
+            return;
+        }
+        
+        // Evitar múltiples verificaciones simultáneas
+        if (verificandoVencidos) {
+            return;
+        }
+        
+        verificandoVencidos = true;
+        
+        fetch('/inventario/api/vencidos/', {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            verificandoVencidos = false;
+            if (data.success && data.cantidad > 0) {
+                lotesVencidosActuales = data.lotes_vencidos;
+                mostrarModalVencidos(data.lotes_vencidos);
+            }
+        })
+        .catch(error => {
+            verificandoVencidos = false;
+            console.error('Error al verificar productos vencidos:', error);
+        });
+    }
+    
+    // Función para mostrar el modal con productos vencidos
+    function mostrarModalVencidos(lotes) {
+        const tbody = document.getElementById('tablaProductosVencidos');
+        tbody.innerHTML = '';
+        
+        lotes.forEach(lote => {
+            const row = document.createElement('tr');
+            row.className = 'table-danger';
+            row.innerHTML = `
+                <td><strong>${lote.numero_lote}</strong></td>
+                <td>${lote.insumo_nombre}</td>
+                <td class="text-end">${lote.cantidad_actual} ${lote.insumo_unidad}</td>
+                <td>${lote.ubicacion}</td>
+                <td class="text-center">${lote.fecha_vencimiento}</td>
+                <td class="text-center">
+                    <span class="badge bg-danger">${lote.dias_vencido} días</span>
+                </td>
+                <td class="text-center">
+                    <a href="/inventario/mermas/crear-lote/?lote_id=${lote.id_lote}" 
+                       class="btn btn-sm btn-warning" 
+                       title="Mermar Producto">
+                        <i class="bi bi-exclamation-triangle"></i> Mermar
+                    </a>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(document.getElementById('modalProductosVencidos'));
+        modal.show();
+        
+        productosVencidosMostrados = true;
+    }
+    
+    // Función para obtener cookie CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Manejar el cierre del modal
+    document.getElementById('modalProductosVencidos').addEventListener('hidden.bs.modal', function() {
+        const noMostrar = document.getElementById('noMostrarVencidos').checked;
+        const lotesIds = lotesVencidosActuales.map(l => l.id_lote);
+        
+        // Marcar como vistos en el servidor
+        fetch('/inventario/api/vencidos/marcar-vistos/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                lotes_ids: lotesIds,
+                no_mostrar: noMostrar
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Preferencias guardadas correctamente');
+            }
+        })
+        .catch(error => {
+            console.error('Error al guardar preferencias:', error);
+        });
+    });
+    
+    // Verificar productos vencidos después de cargar la página
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(verificarProductosVencidos, 1000); // Esperar 1 segundo después de cargar
+        });
+    } else {
+        setTimeout(verificarProductosVencidos, 1000);
+    }
+    
+    // Interceptar envíos de formularios y acciones para verificar vencidos después
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form.tagName === 'FORM' && !form.classList.contains('no-verificar-vencidos')) {
+            // Verificar después de que se procese el formulario
+            setTimeout(verificarProductosVencidos, 1000);
+        }
+    });
+    
+    // Verificar después de clics en enlaces (navegación)
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('a');
+        if (target && 
+            !target.closest('#modalProductosVencidos') && 
+            target.href && 
+            !target.href.includes('javascript:') &&
+            !target.href.includes('#') &&
+            !target.classList.contains('btn-close')) {
+            // Verificar después de un breve delay para permitir la navegación
+            setTimeout(verificarProductosVencidos, 800);
+        }
+    });
+    
+    // Verificar después de cambios en la página (para SPA-like behavior)
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+        const url = location.href;
+        if (url !== lastUrl) {
+            lastUrl = url;
+            setTimeout(verificarProductosVencidos, 1000);
+        }
+    }).observe(document, { subtree: true, childList: true });
+})();
+</script>
+

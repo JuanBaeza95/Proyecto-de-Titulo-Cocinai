@@ -1,0 +1,198 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Historial de movimientos de stock{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'inventario:crear_movimiento_stock' %}" class="btn btn-primary">
+    <i class="bi bi-plus-circle"></i> Nuevo Movimiento
+</a>
+<a href="{% url 'inventario:index' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <!-- Primera fila: Filtros principales -->
+            <div class="col-md-3">
+                <label for="busqueda" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                       value="{{ busqueda }}" placeholder="Insumo, código o número de lote...">
+            </div>
+            <div class="col-md-2">
+                <label for="tipo_movimiento" class="form-label">Tipo</label>
+                <select class="form-select" id="tipo_movimiento" name="tipo_movimiento">
+                    <option value="">Todos</option>
+                    <option value="entrada" {% if tipo_movimiento == 'entrada' %}selected{% endif %}>Entrada</option>
+                    <option value="salida" {% if tipo_movimiento == 'salida' %}selected{% endif %}>Salida</option>
+                    <option value="transferencia" {% if tipo_movimiento == 'transferencia' %}selected{% endif %}>Transferencia</option>
+                    <option value="ajuste" {% if tipo_movimiento == 'ajuste' %}selected{% endif %}>Ajuste</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="origen_movimiento" class="form-label">Origen</label>
+                <select class="form-select" id="origen_movimiento" name="origen_movimiento">
+                    <option value="">Todos</option>
+                    <option value="compra" {% if origen_movimiento == 'compra' %}selected{% endif %}>Compra</option>
+                    <option value="venta" {% if origen_movimiento == 'venta' %}selected{% endif %}>Venta</option>
+                    <option value="merma" {% if origen_movimiento == 'merma' %}selected{% endif %}>Merma</option>
+                    <option value="prediccion" {% if origen_movimiento == 'prediccion' %}selected{% endif %}>Predicción</option>
+                    <option value="manual" {% if origen_movimiento == 'manual' %}selected{% endif %}>Manual</option>
+                    <option value="produccion" {% if origen_movimiento == 'produccion' %}selected{% endif %}>Producción</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="ubicacion" class="form-label">Ubicación</label>
+                <select class="form-select" id="ubicacion" name="ubicacion">
+                    <option value="">Todas</option>
+                    {% for ubicacion in ubicaciones %}
+                        <option value="{{ ubicacion.id_ubicacion }}" {% if ubicacion.id_ubicacion|stringformat:"s" == ubicacion_id %}selected{% endif %}>
+                            {{ ubicacion.nombre_ubicacion }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid gap-2 d-md-flex">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-outline-secondary flex-fill">
+                        <i class="bi bi-x-circle"></i> Limpiar
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Segunda fila: Filtros de fecha -->
+            <div class="col-md-3">
+                <label for="fecha_desde" class="form-label">
+                    <i class="bi bi-calendar-event"></i> Fecha Desde
+                </label>
+                <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" 
+                       value="{{ fecha_desde }}">
+            </div>
+            <div class="col-md-3">
+                <label for="fecha_hasta" class="form-label">
+                    <i class="bi bi-calendar-event"></i> Fecha Hasta
+                </label>
+                <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" 
+                       value="{{ fecha_hasta }}">
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de movimientos -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Historial de Movimientos</h5>
+        <span class="badge bg-primary">{{ page_obj.paginator.count }} movimientos</span>
+    </div>
+    <div class="card-body p-0">
+        {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Origen</th>
+                            <th>Lote</th>
+                            <th>Insumo</th>
+                            <th>Código</th>
+                            <th>Ubicación</th>
+                            <th>Cantidad</th>
+                            <th>Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in page_obj %}
+                        <tr>
+                            <td>{{ movimiento.fecha_movimiento|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if movimiento.tipo_movimiento == 'entrada' %}
+                                    <span class="badge bg-success">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                {% elif movimiento.tipo_movimiento == 'salida' %}
+                                    <span class="badge bg-danger">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                {% elif movimiento.tipo_movimiento == 'transferencia' %}
+                                    <span class="badge bg-info">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-warning">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ movimiento.get_origen_movimiento_display }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ movimiento.id_lote.numero_lote }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ movimiento.id_lote.id_insumo.nombre_insumo }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ movimiento.id_lote.id_insumo.codigo|default:"-" }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ movimiento.id_lote.id_ubicacion.nombre_ubicacion }}</span>
+                                <br>
+                                <small class="text-muted">{{ movimiento.id_lote.id_ubicacion.tipo_ubicacion|title }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ movimiento.cantidad|floatformat:2 }}</strong>
+                                <small class="text-muted">{{ movimiento.id_lote.id_insumo.unidad_medida }}</small>
+                            </td>
+                            <td>
+                                <small>{{ movimiento.id_usuario.nombre|default:"-" }}</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <div class="card-footer">
+                <nav aria-label="Navegación de páginas">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo_movimiento %}&tipo_movimiento={{ tipo_movimiento }}{% endif %}{% if origen_movimiento %}&origen_movimiento={{ origen_movimiento }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}">Primera</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo_movimiento %}&tipo_movimiento={{ tipo_movimiento }}{% endif %}{% if origen_movimiento %}&origen_movimiento={{ origen_movimiento }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo_movimiento %}&tipo_movimiento={{ tipo_movimiento }}{% endif %}{% if origen_movimiento %}&origen_movimiento={{ origen_movimiento }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}">Siguiente</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if tipo_movimiento %}&tipo_movimiento={{ tipo_movimiento }}{% endif %}{% if origen_movimiento %}&origen_movimiento={{ origen_movimiento }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}">Última</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <p class="text-muted mt-3">No se encontraron movimientos con los filtros aplicados.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,89 @@
+{% extends 'produccion/base.html' %}
+
+{% block page_subtitle %}Eliminar producción de plato{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'produccion:detalle_plato_producido' plato_producido.id_plato_producido %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Eliminar Producción de Plato</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Advertencia:</strong> Esta acción eliminará la producción del plato y devolverá el stock consumido a los lotes correspondientes.
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Información del Plato:</h6>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="150">Plato:</th>
+                            <td><strong>{{ plato_producido.id_plato.nombre_plato }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Estado:</th>
+                            <td><span class="badge bg-info">{{ plato_producido.get_estado_display }}</span></td>
+                        </tr>
+                        <tr>
+                            <th>Ubicación:</th>
+                            <td>{{ plato_producido.id_ubicacion.nombre_ubicacion }}</td>
+                        </tr>
+                        <tr>
+                            <th>Fecha Producción:</th>
+                            <td>{{ plato_producido.fecha_produccion|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                {% if detalles_insumos %}
+                <div class="mb-4">
+                    <h6>Insumos que serán devueltos a los lotes:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Insumo</th>
+                                    <th>Lote</th>
+                                    <th>Cantidad a Devolver</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detalle in detalles_insumos %}
+                                <tr>
+                                    <td>{{ detalle.id_insumo.nombre_insumo }}</td>
+                                    <td>{{ detalle.id_lote.numero_lote }}</td>
+                                    <td>{{ detalle.cantidad_usada }} {{ detalle.id_insumo.unidad_medida }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'produccion:detalle_plato_producido' plato_producido.id_plato_producido %}" 
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('¿Está seguro de eliminar esta producción? El stock será devuelto a los lotes.')">
+                            <i class="bi bi-trash"></i> Confirmar Eliminación
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

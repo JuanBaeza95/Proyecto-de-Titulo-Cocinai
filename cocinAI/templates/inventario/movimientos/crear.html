@@ -1,0 +1,339 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Crear movimiento de stock{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver al Historial
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-arrow-left-right"></i> Crear Movimiento de Stock
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="movimiento-form">
+                    {% csrf_token %}
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Campos comunes -->
+                    <div class="row g-3 mb-4">
+                        <!-- Tipo de Movimiento -->
+                        <div class="col-md-4">
+                            <label for="tipo_movimiento" class="form-label">
+                                Tipo de Movimiento
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select name="tipo_movimiento" id="tipo_movimiento" class="form-select" required>
+                                <option value="transferencia" selected>Transferencia</option>
+                                <option value="salida">Salida</option>
+                                <option value="ajuste">Ajuste</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Ubicación Destino (solo para transferencias) -->
+                        <div class="col-md-4" id="ubicacion_destino_container">
+                            <label for="id_ubicacion_destino" class="form-label">
+                                Ubicación Destino
+                                <span class="text-danger" id="ubicacion_required" style="display: none;">*</span>
+                            </label>
+                            <select name="id_ubicacion_destino" id="id_ubicacion_destino" class="form-select">
+                                <option value="">Seleccione una ubicación...</option>
+                                {% for ubicacion in ubicaciones %}
+                                    <option value="{{ ubicacion.id_ubicacion }}">{{ ubicacion.nombre_ubicacion }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Solo para transferencias</small>
+                        </div>
+                        
+                        <!-- Fecha de Movimiento -->
+                        <div class="col-md-4">
+                            <label for="fecha_movimiento" class="form-label">
+                                Fecha de Movimiento
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="fecha_movimiento" id="fecha_movimiento" 
+                                   class="form-control" value="{{ form.fecha_movimiento.initial|date:'Y-m-d' }}" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabla de lotes -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="bi bi-box-seam"></i> Lotes a Mover
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-primary" id="add-lote-row">
+                                <i class="bi bi-plus-circle"></i> Agregar Lote
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="lotes-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 5%;">#</th>
+                                            <th style="width: 45%;">Lote</th>
+                                            <th style="width: 20%;">Cantidad</th>
+                                            <th style="width: 20%;">Stock Disponible</th>
+                                            <th style="width: 10%;">Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lotes-tbody">
+                                        <!-- Las filas se agregarán dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="no-lotes-message" class="text-center text-muted py-3">
+                                <i class="bi bi-info-circle"></i> Haga clic en "Agregar Lote" para comenzar
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> <strong>Información:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Transferencia:</strong> Mueve stock de una ubicación a otra, creando un nuevo lote en el destino.</li>
+                            <li><strong>Salida:</strong> Registra una salida de stock sin crear lote destino (ej: consumo, pérdida).</li>
+                            <li><strong>Ajuste:</strong> Ajuste de inventario (corrección de cantidades).</li>
+                            <li>Puede agregar múltiples lotes haciendo clic en "Agregar Lote". Los lotes se ordenan por FEFO (más próximo a vencer primero).</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="submit-btn">
+                            <i class="bi bi-check-circle"></i> Crear Movimiento(s)
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoMovimiento = document.getElementById('tipo_movimiento');
+    const ubicacionDestino = document.getElementById('id_ubicacion_destino');
+    const ubicacionContainer = document.getElementById('ubicacion_destino_container');
+    const ubicacionRequired = document.getElementById('ubicacion_required');
+    const addLoteBtn = document.getElementById('add-lote-row');
+    const lotesTbody = document.getElementById('lotes-tbody');
+    const noLotesMessage = document.getElementById('no-lotes-message');
+    const submitBtn = document.getElementById('submit-btn');
+    let rowCount = 0;
+    
+    // Datos de lotes disponibles (se cargarán desde el servidor)
+    const lotesDisponibles = [
+        {% for lote in lotes_disponibles %}
+        {
+            id: {{ lote.id_lote }},
+            numero: "{{ lote.numero_lote|escapejs }}",
+            insumo: "{{ lote.id_insumo.nombre_insumo|escapejs }}",
+            stock: {{ lote.cantidad_actual }},
+            unidad: "{{ lote.id_insumo.unidad_medida|escapejs }}",
+            ubicacion: "{{ lote.id_ubicacion.nombre_ubicacion|escapejs }}",
+            vencimiento: "{{ lote.fecha_vencimiento|date:'d/m/Y' }}",
+            diasRestantes: {{ lote.dias_para_vencer }},
+            label: "{{ lote.numero_lote|escapejs }} - {{ lote.id_insumo.nombre_insumo|escapejs }} | Stock: {{ lote.cantidad_actual }} {{ lote.id_insumo.unidad_medida|escapejs }} | {{ lote.id_ubicacion.nombre_ubicacion|escapejs }} | Vence: {{ lote.fecha_vencimiento|date:'d/m/Y' }} ({{ lote.dias_para_vencer }}d)"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    // Función para mostrar/ocultar ubicación destino
+    function toggleUbicacionDestino() {
+        if (tipoMovimiento.value === 'transferencia') {
+            ubicacionContainer.style.display = 'block';
+            ubicacionRequired.style.display = 'inline';
+            ubicacionDestino.required = true;
+        } else {
+            ubicacionContainer.style.display = 'block';
+            ubicacionRequired.style.display = 'none';
+            ubicacionDestino.required = false;
+        }
+    }
+    
+    tipoMovimiento.addEventListener('change', toggleUbicacionDestino);
+    toggleUbicacionDestino();
+    
+    // Función para agregar una fila de lote
+    function addLoteRow() {
+        const row = document.createElement('tr');
+        row.className = 'lote-row';
+        row.setAttribute('data-row-index', rowCount);
+        
+        const loteSelect = document.createElement('select');
+        loteSelect.name = `lote_${rowCount}`;
+        loteSelect.className = 'form-select lote-select';
+        loteSelect.required = true;
+        loteSelect.innerHTML = '<option value="">Seleccione un lote...</option>';
+        
+        lotesDisponibles.forEach(lote => {
+            const option = document.createElement('option');
+            option.value = lote.id;
+            option.textContent = lote.label;
+            option.setAttribute('data-stock', lote.stock);
+            option.setAttribute('data-unidad', lote.unidad);
+            loteSelect.appendChild(option);
+        });
+        
+        const cantidadInput = document.createElement('input');
+        cantidadInput.type = 'number';
+        cantidadInput.name = `cantidad_${rowCount}`;
+        cantidadInput.className = 'form-control cantidad-input';
+        cantidadInput.step = '0.01';
+        cantidadInput.min = '0.01';
+        cantidadInput.required = true;
+        cantidadInput.placeholder = '0.00';
+        
+        const stockDisplay = document.createElement('span');
+        stockDisplay.className = 'stock-display text-muted';
+        stockDisplay.textContent = '-';
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-sm btn-danger remove-row';
+        removeBtn.innerHTML = '<i class="bi bi-trash"></i>';
+        
+        row.innerHTML = `
+            <td>${rowCount + 1}</td>
+            <td>${loteSelect.outerHTML}</td>
+            <td>
+                <div class="input-group">
+                    ${cantidadInput.outerHTML}
+                    <span class="input-group-text unidad-display">-</span>
+                </div>
+            </td>
+            <td><span class="stock-display text-muted">-</span></td>
+            <td>${removeBtn.outerHTML}</td>
+        `;
+        
+        lotesTbody.appendChild(row);
+        
+        // Actualizar eventos
+        const select = row.querySelector('.lote-select');
+        const cantidad = row.querySelector('.cantidad-input');
+        const stockSpan = row.querySelector('.stock-display');
+        const unidadSpan = row.querySelector('.unidad-display');
+        
+        select.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                const stock = parseFloat(selectedOption.getAttribute('data-stock'));
+                const unidad = selectedOption.getAttribute('data-unidad');
+                stockSpan.textContent = `${stock} ${unidad}`;
+                unidadSpan.textContent = unidad;
+                cantidad.max = stock;
+                if (parseFloat(cantidad.value) > stock) {
+                    cantidad.value = stock;
+                }
+            } else {
+                stockSpan.textContent = '-';
+                unidadSpan.textContent = '-';
+            }
+        });
+        
+        cantidad.addEventListener('input', function() {
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption.value) {
+                const stock = parseFloat(selectedOption.getAttribute('data-stock'));
+                if (parseFloat(this.value) > stock) {
+                    this.value = stock;
+                    alert(`La cantidad no puede ser mayor al stock disponible (${stock})`);
+                }
+            }
+        });
+        
+        removeBtn.addEventListener('click', function() {
+            row.remove();
+            updateRowNumbers();
+            checkEmptyTable();
+        });
+        
+        rowCount++;
+        noLotesMessage.style.display = 'none';
+        updateRowNumbers();
+    }
+    
+    // Función para actualizar números de fila
+    function updateRowNumbers() {
+        const rows = lotesTbody.querySelectorAll('.lote-row');
+        rows.forEach((row, index) => {
+            row.querySelector('td:first-child').textContent = index + 1;
+        });
+    }
+    
+    // Función para verificar si la tabla está vacía
+    function checkEmptyTable() {
+        if (lotesTbody.querySelectorAll('.lote-row').length === 0) {
+            noLotesMessage.style.display = 'block';
+        } else {
+            noLotesMessage.style.display = 'none';
+        }
+    }
+    
+    // Event listener para agregar fila
+    addLoteBtn.addEventListener('click', addLoteRow);
+    
+    // Validación antes de enviar
+    document.getElementById('movimiento-form').addEventListener('submit', function(e) {
+        const rows = lotesTbody.querySelectorAll('.lote-row');
+        if (rows.length === 0) {
+            e.preventDefault();
+            alert('Debe agregar al menos un lote para mover.');
+            return false;
+        }
+        
+        let hasErrors = false;
+        rows.forEach(row => {
+            const select = row.querySelector('.lote-select');
+            const cantidad = row.querySelector('.cantidad-input');
+            
+            if (!select.value) {
+                hasErrors = true;
+                select.classList.add('is-invalid');
+            } else {
+                select.classList.remove('is-invalid');
+            }
+            
+            if (!cantidad.value || parseFloat(cantidad.value) <= 0) {
+                hasErrors = true;
+                cantidad.classList.add('is-invalid');
+            } else {
+                cantidad.classList.remove('is-invalid');
+            }
+        });
+        
+        if (hasErrors) {
+            e.preventDefault();
+            alert('Por favor complete todos los campos requeridos.');
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+.lote-row .form-select.is-invalid,
+.lote-row .form-control.is-invalid {
+    border-color: #dc3545;
+}
+</style>
+{% endblock %}

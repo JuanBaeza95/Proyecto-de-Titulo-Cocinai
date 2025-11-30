@@ -1,0 +1,107 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Registrar merma de plato{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'inventario:lista_mermas' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a la Lista
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle text-warning"></i> Registrar Merma de Plato
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.id_plato_producido.id_for_label }}" class="form-label">
+                            {{ form.id_plato_producido.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.id_plato_producido }}
+                        {% if form.id_plato_producido.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.id_plato_producido.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.id_plato_producido.help_text %}
+                            <div class="form-text">{{ form.id_plato_producido.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.id_causa.id_for_label }}" class="form-label">
+                            {{ form.id_causa.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.id_causa }}
+                        {% if form.id_causa.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.id_causa.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.id_causa.help_text %}
+                            <div class="form-text">{{ form.id_causa.help_text }}</div>
+                        {% endif %}
+                        <a href="{% url 'inventario:crear_causa_merma' %}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                            <i class="bi bi-plus-circle"></i> Crear Nueva Causa
+                        </a>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.cantidad_desperdiciada.id_for_label }}" class="form-label">
+                            {{ form.cantidad_desperdiciada.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.cantidad_desperdiciada }}
+                        {% if form.cantidad_desperdiciada.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.cantidad_desperdiciada.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.cantidad_desperdiciada.help_text %}
+                            <div class="form-text">{{ form.cantidad_desperdiciada.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.fecha_registro.id_for_label }}" class="form-label">
+                            {{ form.fecha_registro.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.fecha_registro }}
+                        {% if form.fecha_registro.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.fecha_registro.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'inventario:lista_mermas' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-circle"></i> Registrar Merma
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

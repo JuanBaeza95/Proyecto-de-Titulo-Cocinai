@@ -1,0 +1,346 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<a href="{% url 'prediccion:index' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0"><i class="bi bi-file-earmark-text"></i> Reporte Completo de Predicciones</h4>
+        <small>Generado el {{ "now"|date:"d/m/Y H:i" }}</small>
+    </div>
+</div>
+
+<!-- Resumen Ejecutivo -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <h6>Ventas Semanales</h6>
+            <h2>{{ analisis_semanal.total_actual }}</h2>
+            <small>vs {{ analisis_semanal.total_anterior }} año anterior</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <h6>Ventas Mensuales</h6>
+            <h2>{{ analisis_mensual.total_actual }}</h2>
+            <small>vs {{ analisis_mensual.total_anterior }} mes anterior</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <h6>Mermas del Mes</h6>
+            <h2>{{ analisis_mermas.total_mermas|floatformat:2 }}</h2>
+            <small>{{ analisis_mermas.total_registros }} registros</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <h6>Insumos Urgentes</h6>
+            <h2>{{ insumos_urgentes|length }}</h2>
+            <small>Requieren compra inmediata</small>
+        </div>
+    </div>
+</div>
+
+<!-- Análisis de Ventas -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Análisis de Ventas</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Ventas Semanales (vs Año Anterior)</h6>
+                {% if analisis_semanal.sugerencias %}
+                    <ul class="list-group">
+                        {% for sugerencia in analisis_semanal.sugerencias|slice:":5" %}
+                            <li class="list-group-item">
+                                <strong>{{ sugerencia.plato }}:</strong> {{ sugerencia.mensaje }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No hay datos suficientes</p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <h6>Ventas Mensuales (vs Mes Anterior)</h6>
+                {% if analisis_mensual.sugerencias %}
+                    <ul class="list-group">
+                        {% for sugerencia in analisis_mensual.sugerencias|slice:":5" %}
+                            <li class="list-group-item">
+                                <strong>{{ sugerencia.plato }}:</strong> 
+                                {{ sugerencia.actual }} vs {{ sugerencia.anterior }} 
+                                ({% if sugerencia.diferencia > 0 %}+{% endif %}{{ sugerencia.diferencia }})
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No hay datos suficientes</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Análisis de Mermas -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Análisis de Mermas</h5>
+    </div>
+    <div class="card-body">
+        {% if analisis_mermas.alertas %}
+            <h6 class="mb-3">Alertas:</h6>
+            {% for alerta in analisis_mermas.alertas %}
+                <div class="alerta mb-2">
+                    <strong>{{ alerta.tipo|title }}:</strong> {{ alerta.mensaje }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <h6>Por Usuario:</h6>
+                <ul class="list-group">
+                    {% for usuario, datos in analisis_mermas.por_usuario.items|slice:":5" %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ usuario }}</span>
+                            <span class="badge bg-secondary">{{ datos.cantidad|floatformat:2 }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Por Causa:</h6>
+                <ul class="list-group">
+                    {% for causa, datos in analisis_mermas.por_causa.items %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ causa }}</span>
+                            <span class="badge bg-secondary">{{ datos.cantidad|floatformat:2 }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Proyección de Compras -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-cart-plus"></i> Proyección de Compras (Top 20)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Insumo</th>
+                        <th class="text-end">Stock Actual</th>
+                        <th class="text-end">A Comprar</th>
+                        <th class="text-end">Días Stock</th>
+                        <th>Urgencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for proyeccion in proyecciones %}
+                        <tr>
+                            <td>{{ proyeccion.insumo_nombre }}</td>
+                            <td class="text-end">{{ proyeccion.stock_actual|floatformat:2 }}</td>
+                            <td class="text-end"><strong>{{ proyeccion.cantidad_a_comprar|floatformat:2 }}</strong></td>
+                            <td class="text-end">{{ proyeccion.dias_stock_restante|floatformat:0 }}</td>
+                            <td>
+                                <span class="badge {% if proyeccion.urgencia == 'alta' %}bg-danger{% elif proyeccion.urgencia == 'media' %}bg-warning{% else %}bg-success{% endif %}">
+                                    {{ proyeccion.urgencia|title }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No hay proyecciones disponibles</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Predicciones ML de Ventas -->
+{% if ml_disponible and predicciones_ventas_por_plato %}
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Predicciones ML de Ventas (Próximos 7 días)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Plato</th>
+                        <th class="text-end">Total Predicho</th>
+                        <th class="text-end">Promedio Diario</th>
+                        <th class="text-center">Detalle Diario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pred_plato in predicciones_ventas_por_plato %}
+                    <tr>
+                        <td>
+                            <strong>{{ pred_plato.plato_nombre }}</strong>
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-success fs-6">{{ pred_plato.total_predicho|floatformat:1 }}</span>
+                        </td>
+                        <td class="text-end">
+                            {{ pred_plato.promedio_diario|floatformat:1 }}
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary" type="button" 
+                                    data-bs-toggle="collapse" data-bs-target="#detalle-{{ pred_plato.plato_id }}">
+                                <i class="bi bi-list-ul"></i> Ver
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="collapse" id="detalle-{{ pred_plato.plato_id }}">
+                        <td colspan="4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Predicciones diarias para {{ pred_plato.plato_nombre }}:</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Día</th>
+                                                    <th class="text-end">Ventas Predichas</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for pred in pred_plato.predicciones %}
+                                                <tr>
+                                                    <td>{{ pred.fecha|date:"d/m/Y" }}</td>
+                                                    <td>{{ pred.dia_semana }}</td>
+                                                    <td class="text-end">
+                                                        <strong>{{ pred.ventas_predichas|floatformat:1 }}</strong>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No hay predicciones disponibles</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-success">
+                        <th>Total General</th>
+                        <th class="text-end">
+                            {% if predicciones_ventas_ml.total_predicho %}
+                                {{ predicciones_ventas_ml.total_predicho|floatformat:1 }}
+                            {% else %}
+                                {{ predicciones_ventas_por_plato|length }} platos
+                            {% endif %}
+                        </th>
+                        <th colspan="2"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Predicciones ML de Demanda -->
+{% if ml_disponible and predicciones_demanda_ml %}
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="bi bi-box-seam"></i> Predicciones ML de Demanda de Insumos (Próximos 30 días)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Insumo</th>
+                        <th class="text-end">Demanda Predicha</th>
+                        <th>Unidad</th>
+                        <th>Urgencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pred in predicciones_demanda_ml %}
+                    <tr>
+                        <td>{{ pred.insumo_nombre }}</td>
+                        <td class="text-end"><strong>{{ pred.demanda_predicha|floatformat:2 }}</strong></td>
+                        <td>{{ pred.unidad_medida }}</td>
+                        <td>
+                            <span class="badge {% if pred.urgencia == 'alta' %}bg-danger{% elif pred.urgencia == 'media' %}bg-warning{% else %}bg-success{% endif %}">
+                                {{ pred.urgencia|title }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No hay predicciones disponibles</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Anomalías -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Anomalías en Ventas</h6>
+            </div>
+            <div class="card-body">
+                {% if anomalias_ventas %}
+                    {% for anomalia in anomalias_ventas %}
+                        <div class="anomalia mb-2">
+                            <strong>{{ anomalia.fecha|date:"d/m/Y" }}:</strong> {{ anomalia.mensaje }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-success">No se detectaron anomalías</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Anomalías en Mermas</h6>
+            </div>
+            <div class="card-body">
+                {% if anomalias_mermas %}
+                    {% for anomalia in anomalias_mermas %}
+                        <div class="anomalia mb-2">
+                            <strong>{{ anomalia.fecha|date:"d/m/Y" }}:</strong> {{ anomalia.mensaje }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-success">No se detectaron anomalías</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

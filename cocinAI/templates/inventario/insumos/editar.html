@@ -1,0 +1,99 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Editar información del insumo{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'inventario:lista_insumos' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a la Lista
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil text-primary"></i> Editar Insumo: {{ insumo.nombre_insumo }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.codigo.id_for_label }}" class="form-label">
+                            {{ form.codigo.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.codigo }}
+                        {% if form.codigo.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.codigo.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Código único del insumo (ej: TOM, LEC, POL). Se usará para generar números de lote.</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.nombre_insumo.id_for_label }}" class="form-label">
+                            {{ form.nombre_insumo.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.nombre_insumo }}
+                        {% if form.nombre_insumo.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.nombre_insumo.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.unidad_medida.id_for_label }}" class="form-label">
+                            {{ form.unidad_medida.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.unidad_medida }}
+                        {% if form.unidad_medida.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.unidad_medida.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.costo_promedio.id_for_label }}" class="form-label">
+                            {{ form.costo_promedio.label }}
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.costo_promedio }}
+                        </div>
+                        {% if form.costo_promedio.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.costo_promedio.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'inventario:lista_insumos' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

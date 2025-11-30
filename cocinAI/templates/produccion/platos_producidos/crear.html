@@ -1,0 +1,270 @@
+{% extends 'produccion/base.html' %}
+
+{% block page_subtitle %}Crear un nuevo plato producido{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'produccion:lista_platos_producidos' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Producir Plato</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="form-producir">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.id_plato.id_for_label }}" class="form-label">
+                            {{ form.id_plato.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.id_plato }}
+                        {% if form.id_plato.help_text %}
+                            <div class="form-text">{{ form.id_plato.help_text }}</div>
+                        {% endif %}
+                        {% if form.id_plato.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.id_plato.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Ingredientes editables -->
+                    <div id="ingredientes-section" class="mb-4" style="display: none;">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="bi bi-list-ul"></i> Ingredientes (Puedes editar, eliminar o agregar)</h6>
+                                    <button type="button" class="btn btn-sm btn-light" id="add-ingredient">
+                                        <i class="bi bi-plus-circle"></i> Agregar Ingrediente
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                {% if formset.non_form_errors %}
+                                    <div class="alert alert-danger">
+                                        {% for error in formset.non_form_errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                
+                                {{ formset.management_form }}
+                                <div id="ingredients-container">
+                                    {% for form in formset %}
+                                        <div class="row mb-3 ingredient-form" data-form-index="{{ forloop.counter0 }}">
+                                            {% for hidden in form.hidden_fields %}
+                                                {{ hidden }}
+                                            {% endfor %}
+                                            
+                                            <div class="col-md-5">
+                                                <label class="form-label">Insumo</label>
+                                                {{ form.id_insumo }}
+                                                {% if form.id_insumo.errors %}
+                                                    <div class="text-danger small">{{ form.id_insumo.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Cantidad</label>
+                                                {{ form.cantidad_necesaria }}
+                                                {% if form.cantidad_necesaria.errors %}
+                                                    <div class="text-danger small">{{ form.cantidad_necesaria.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">&nbsp;</label>
+                                                <div>
+                                                    {% if form.DELETE %}
+                                                        <div class="form-check">
+                                                            {{ form.DELETE }}
+                                                            <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">
+                                                                Eliminar
+                                                            </label>
+                                                        </div>
+                                                    {% else %}
+                                                        <button type="button" class="btn btn-sm btn-outline-danger w-100 remove-ingredient">
+                                                            <i class="bi bi-trash"></i> Eliminar
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Nota:</strong> Al producir un plato, se descontarán automáticamente los insumos 
+                        de los lotes en cocina según los ingredientes especificados, usando el método FIFO (First In First Out) 
+                        por fecha de vencimiento. El plato quedará en estado "En Cocina".
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'produccion:lista_platos_producidos' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Producir Plato
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const platoSelect = document.getElementById('id_plato_select');
+    const ingredientesSection = document.getElementById('ingredientes-section');
+    const container = document.getElementById('ingredients-container');
+    const addBtn = document.getElementById('add-ingredient');
+    const totalForms = document.getElementById('id_ingredientes-TOTAL_FORMS');
+    
+    // Datos desde el servidor
+    const recetasPorPlato = {{ recetas_por_plato_json|safe }};
+    const insumos = {{ insumos_json|safe }};
+    
+    // Función para crear un formulario de ingrediente
+    function crearFormularioIngrediente(index, insumoId = '', cantidad = '') {
+        const formDiv = document.createElement('div');
+        formDiv.className = 'row mb-3 ingredient-form';
+        formDiv.setAttribute('data-form-index', index);
+        
+        let selectOptions = '<option value="">---------</option>';
+        insumos.forEach(insumo => {
+            const selected = insumo.id_insumo == insumoId ? 'selected' : '';
+            selectOptions += `<option value="${insumo.id_insumo}" ${selected}>${insumo.nombre_insumo} (${insumo.unidad_medida})</option>`;
+        });
+        
+        formDiv.innerHTML = `
+            <input type="hidden" name="ingredientes-${index}-id" value="">
+            <div class="col-md-5">
+                <label class="form-label">Insumo</label>
+                <select name="ingredientes-${index}-id_insumo" class="form-select">
+                    ${selectOptions}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Cantidad</label>
+                <input type="number" name="ingredientes-${index}-cantidad_necesaria" 
+                       class="form-control" step="0.01" min="0.01" 
+                       value="${cantidad}" placeholder="0.00">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-danger w-100 remove-ingredient">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+            <input type="hidden" name="ingredientes-${index}-DELETE" value="false">
+        `;
+        
+        return formDiv;
+    }
+    
+    // Función para cargar receta de un plato
+    function cargarReceta(platoId) {
+        if (!platoId) {
+            ingredientesSection.style.display = 'none';
+            return;
+        }
+        
+        const receta = recetasPorPlato[platoId];
+        if (receta && receta.length > 0) {
+            // Limpiar contenedor
+            container.innerHTML = '';
+            
+            // Crear formularios para cada ingrediente
+            receta.forEach((ingrediente, index) => {
+                const formDiv = crearFormularioIngrediente(
+                    index,
+                    ingrediente.id_insumo,
+                    ingrediente.cantidad_necesaria
+                );
+                container.appendChild(formDiv);
+            });
+            
+            // Agregar un formulario vacío adicional
+            const emptyForm = crearFormularioIngrediente(receta.length, '', '');
+            container.appendChild(emptyForm);
+            
+            // Actualizar total forms
+            totalForms.value = receta.length + 1;
+            
+            ingredientesSection.style.display = 'block';
+        } else {
+            // Si no hay receta, mostrar un formulario vacío
+            container.innerHTML = '';
+            const emptyForm = crearFormularioIngrediente(0, '', '');
+            container.appendChild(emptyForm);
+            totalForms.value = 1;
+            ingredientesSection.style.display = 'block';
+        }
+    }
+    
+    // Event listener para cambio de plato
+    if (platoSelect) {
+        platoSelect.addEventListener('change', function() {
+            const platoId = parseInt(this.value);
+            cargarReceta(platoId);
+        });
+        
+        // Si ya hay un plato seleccionado (por ejemplo, después de un error)
+        {% if plato_seleccionado %}
+            platoSelect.value = {{ plato_seleccionado.id_plato }};
+            cargarReceta({{ plato_seleccionado.id_plato }});
+        {% endif %}
+    }
+    
+    // Agregar ingrediente
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            const currentIndex = parseInt(totalForms.value) || 0;
+            const emptyForm = crearFormularioIngrediente(currentIndex, '', '');
+            container.appendChild(emptyForm);
+            totalForms.value = currentIndex + 1;
+        });
+    }
+    
+    // Eliminar ingrediente
+    container.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-ingredient')) {
+            const formDiv = e.target.closest('.ingredient-form');
+            const deleteInput = formDiv.querySelector('input[name*="-DELETE"]');
+            if (deleteInput) {
+                deleteInput.value = 'true';
+                formDiv.style.display = 'none';
+            } else {
+                formDiv.remove();
+                // Actualizar índices
+                const forms = container.querySelectorAll('.ingredient-form:not([style*="display: none"])');
+                forms.forEach((form, index) => {
+                    form.setAttribute('data-form-index', index);
+                    form.querySelectorAll('input, select').forEach(input => {
+                        if (input.name) {
+                            input.name = input.name.replace(/ingredientes-\d+-/, `ingredientes-${index}-`);
+                        }
+                    });
+                });
+                totalForms.value = forms.length;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

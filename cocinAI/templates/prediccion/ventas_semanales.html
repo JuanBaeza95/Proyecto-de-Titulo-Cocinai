@@ -1,0 +1,131 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <form method="get" class="d-inline">
+        <select name="plato" class="form-select form-select-sm d-inline-block" style="width: auto;" onchange="this.form.submit()">
+            <option value="">Todos los platos</option>
+            {% for plato in platos %}
+                <option value="{{ plato.id_plato }}" {% if plato_seleccionado and plato.id_plato == plato_seleccionado.id_plato %}selected{% endif %}>
+                    {{ plato.nombre_plato }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+    <a href="{% url 'prediccion:index' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Análisis de Ventas Semanales</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stat-card success">
+                    <h6>Semana Actual ({{ analisis.año_actual }})</h6>
+                    <h2>{{ analisis.total_actual }}</h2>
+                    <small>Platos vendidos</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card info">
+                    <h6>Semana Anterior ({{ analisis.año_anterior }})</h6>
+                    <h2>{{ analisis.total_anterior }}</h2>
+                    <small>Platos vendidos</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card {% if analisis.diferencia_total > 0 %}success{% else %}warning{% endif %}">
+                    <h6>Diferencia</h6>
+                    <h2>
+                        {% if analisis.diferencia_total > 0 %}+{% endif %}{{ analisis.diferencia_total }}
+                    </h2>
+                    <small>
+                        {% if analisis.total_anterior > 0 %}
+                            {% widthratio analisis.diferencia_total analisis.total_anterior 100 %}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        {% if analisis.sugerencias %}
+            <h5 class="mb-3">Sugerencias y Recomendaciones</h5>
+            {% for sugerencia in analisis.sugerencias %}
+                <div class="sugerencia">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">{{ sugerencia.plato }}</h6>
+                            <p class="mb-0">{{ sugerencia.mensaje }}</p>
+                            <small class="text-muted">
+                                Actual: {{ sugerencia.actual }} | Año Anterior: {{ sugerencia.anterior }}
+                            </small>
+                        </div>
+                        <span class="badge {% if sugerencia.tipo == 'aumento' %}bg-success{% elif sugerencia.tipo == 'disminucion' %}bg-warning{% else %}bg-info{% endif %}">
+                            {{ sugerencia.porcentaje }}%
+                        </span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No hay datos suficientes para comparar con el año anterior.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Desglose por Plato</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Plato</th>
+                        <th class="text-end">Semana Actual</th>
+                        <th class="text-end">Semana Anterior</th>
+                        <th class="text-end">Diferencia</th>
+                        <th class="text-end">% Cambio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in analisis.comparacion_platos %}
+                        <tr>
+                            <td><strong>{{ item.plato }}</strong></td>
+                            <td class="text-end">{{ item.actual }}</td>
+                            <td class="text-end">{{ item.anterior }}</td>
+                            <td class="text-end">
+                                <span class="badge {% if item.diferencia > 0 %}bg-success{% elif item.diferencia < 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                                    {% if item.diferencia > 0 %}+{% endif %}{{ item.diferencia }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                {% if item.anterior > 0 %}
+                                    {% if item.porcentaje_cambio > 0 %}+{% endif %}{{ item.porcentaje_cambio }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No hay ventas registradas esta semana</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,242 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Consultar lotes disponibles en inventario{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'inventario:index' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="busqueda" class="form-label">Buscar Insumo</label>
+                <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                       value="{{ busqueda }}" placeholder="Nombre o código del insumo...">
+            </div>
+            <div class="col-md-2">
+                <label for="numero_lote" class="form-label">Número de Lote</label>
+                <input type="text" class="form-control" id="numero_lote" name="numero_lote" 
+                       value="{{ numero_lote }}" placeholder="Ej: TOM-01">
+            </div>
+            <div class="col-md-2">
+                <label for="ubicacion" class="form-label">Ubicación</label>
+                <select class="form-select" id="ubicacion" name="ubicacion">
+                    <option value="">Todas las ubicaciones</option>
+                    {% for ubicacion in ubicaciones %}
+                        <option value="{{ ubicacion.id_ubicacion }}" {% if ubicacion.id_ubicacion|stringformat:"s" == ubicacion_id %}selected{% endif %}>
+                            {{ ubicacion.nombre_ubicacion }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="estado_vencimiento" class="form-label">Estado</label>
+                <select class="form-select" id="estado_vencimiento" name="estado_vencimiento">
+                    <option value="">Todos</option>
+                    <option value="vencidos" {% if estado_vencimiento == 'vencidos' %}selected{% endif %}>Vencidos</option>
+                    <option value="por_vencer_7" {% if estado_vencimiento == 'por_vencer_7' %}selected{% endif %}>Por vencer (7 días)</option>
+                    <option value="por_vencer_30" {% if estado_vencimiento == 'por_vencer_30' %}selected{% endif %}>Por vencer (30 días)</option>
+                    <option value="vigentes" {% if estado_vencimiento == 'vigentes' %}selected{% endif %}>Vigentes</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+            <!-- Segunda fila: Filtros de fecha -->
+            <div class="col-md-3">
+                <label for="fecha_vencimiento_desde" class="form-label">
+                    <i class="bi bi-calendar-x"></i> Fecha Vencimiento Desde
+                </label>
+                <input type="date" class="form-control" id="fecha_vencimiento_desde" name="fecha_vencimiento_desde" 
+                       value="{{ fecha_vencimiento_desde }}">
+            </div>
+            <div class="col-md-3">
+                <label for="fecha_vencimiento_hasta" class="form-label">
+                    <i class="bi bi-calendar-x"></i> Fecha Vencimiento Hasta
+                </label>
+                <input type="date" class="form-control" id="fecha_vencimiento_hasta" name="fecha_vencimiento_hasta" 
+                       value="{{ fecha_vencimiento_hasta }}">
+            </div>
+            <div class="col-md-3">
+                <label for="fecha_ingreso_desde" class="form-label">
+                    <i class="bi bi-calendar-event"></i> Fecha Ingreso Desde
+                </label>
+                <input type="date" class="form-control" id="fecha_ingreso_desde" name="fecha_ingreso_desde" 
+                       value="{{ fecha_ingreso_desde }}">
+            </div>
+            <div class="col-md-3">
+                <label for="fecha_ingreso_hasta" class="form-label">
+                    <i class="bi bi-calendar-event"></i> Fecha Ingreso Hasta
+                </label>
+                <input type="date" class="form-control" id="fecha_ingreso_hasta" name="fecha_ingreso_hasta" 
+                       value="{{ fecha_ingreso_hasta }}">
+            </div>
+            
+            <!-- Tercera fila: Orden y acciones -->
+            <div class="col-md-3">
+                <label for="orden" class="form-label">Ordenar por</label>
+                <select class="form-select" id="orden" name="orden">
+                    <option value="fecha_vencimiento" {% if orden == 'fecha_vencimiento' %}selected{% endif %}>Fecha Vencimiento (FEFO)</option>
+                    <option value="fecha_ingreso" {% if orden == 'fecha_ingreso' %}selected{% endif %}>Fecha Ingreso</option>
+                    <option value="cantidad" {% if orden == 'cantidad' %}selected{% endif %}>Cantidad</option>
+                    <option value="numero_lote" {% if orden == 'numero_lote' %}selected{% endif %}>Número de Lote</option>
+                    <option value="insumo" {% if orden == 'insumo' %}selected{% endif %}>Insumo</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <a href="{% url 'inventario:lista_lotes' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Limpiar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de lotes -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Lotes Disponibles</h5>
+        <span class="badge bg-primary">{{ page_obj.paginator.count }} lotes</span>
+    </div>
+    <div class="card-body p-0">
+        {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Número de Lote</th>
+                            <th>Insumo</th>
+                            <th>Código</th>
+                            <th>Ubicación</th>
+                            <th>Cantidad</th>
+                            <th>Unidad</th>
+                            <th>Fecha Ingreso</th>
+                            <th>Fecha Vencimiento</th>
+                            <th>Costo Unitario</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in lotes_con_estado %}
+                        {% with lote=item.lote estado=item.estado dias_mostrar=item.dias_mostrar %}
+                        <tr>
+                            <td>
+                                <strong class="badge bg-info">{{ lote.numero_lote }}</strong>
+                            </td>
+                            <td>
+                                <strong>{{ lote.id_insumo.nombre_insumo }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ lote.id_insumo.codigo|default:"-" }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ lote.id_ubicacion.nombre_ubicacion }}</span>
+                                <br>
+                                <small class="text-muted">{{ lote.id_ubicacion.tipo_ubicacion|title }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ lote.cantidad_actual|floatformat:2 }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ lote.id_insumo.unidad_medida }}</span>
+                            </td>
+                            <td>{{ lote.fecha_ingreso|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if estado == 'vencido' %}
+                                    <span class="badge bg-danger">{{ lote.fecha_vencimiento|date:"d/m/Y" }}</span>
+                                    <br><small class="text-danger">Vencido hace {{ dias_mostrar }} días</small>
+                                {% elif estado == 'por_vencer_7' %}
+                                    <span class="badge bg-warning">{{ lote.fecha_vencimiento|date:"d/m/Y" }}</span>
+                                    <br><small class="text-warning">Por vencer ({{ dias_mostrar }} días)</small>
+                                {% elif estado == 'por_vencer_30' %}
+                                    <span class="badge bg-info">{{ lote.fecha_vencimiento|date:"d/m/Y" }}</span>
+                                    <br><small class="text-info">Próximo a vencer ({{ dias_mostrar }} días)</small>
+                                {% else %}
+                                    <span class="badge bg-success">{{ lote.fecha_vencimiento|date:"d/m/Y" }}</span>
+                                    <br><small class="text-success">Vigente ({{ dias_mostrar }} días)</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                ${{ lote.costo_unitario|floatformat:0 }}
+                            </td>
+                            <td>
+                                {% if estado == 'vencido' %}
+                                    <span class="badge bg-danger">Vencido</span>
+                                {% elif estado == 'por_vencer_7' %}
+                                    <span class="badge bg-warning">Por vencer</span>
+                                {% elif estado == 'por_vencer_30' %}
+                                    <span class="badge bg-info">Próximo</span>
+                                {% else %}
+                                    <span class="badge bg-success">Vigente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'inventario:crear_merma_lote' %}?lote_id={{ lote.id_lote }}" 
+                                   class="btn btn-sm btn-warning" 
+                                   title="Registrar merma de este lote">
+                                    <i class="bi bi-exclamation-triangle"></i> Mermar
+                                </a>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <div class="card-footer">
+                <nav aria-label="Navegación de páginas">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}{% if fecha_vencimiento_desde %}&fecha_vencimiento_desde={{ fecha_vencimiento_desde }}{% endif %}{% if fecha_vencimiento_hasta %}&fecha_vencimiento_hasta={{ fecha_vencimiento_hasta }}{% endif %}{% if fecha_ingreso_desde %}&fecha_ingreso_desde={{ fecha_ingreso_desde }}{% endif %}{% if fecha_ingreso_hasta %}&fecha_ingreso_hasta={{ fecha_ingreso_hasta }}{% endif %}{% if numero_lote %}&numero_lote={{ numero_lote }}{% endif %}{% if estado_vencimiento %}&estado_vencimiento={{ estado_vencimiento }}{% endif %}{% if orden %}&orden={{ orden }}{% endif %}">Primera</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}{% if fecha_vencimiento_desde %}&fecha_vencimiento_desde={{ fecha_vencimiento_desde }}{% endif %}{% if fecha_vencimiento_hasta %}&fecha_vencimiento_hasta={{ fecha_vencimiento_hasta }}{% endif %}{% if fecha_ingreso_desde %}&fecha_ingreso_desde={{ fecha_ingreso_desde }}{% endif %}{% if fecha_ingreso_hasta %}&fecha_ingreso_hasta={{ fecha_ingreso_hasta }}{% endif %}{% if numero_lote %}&numero_lote={{ numero_lote }}{% endif %}{% if estado_vencimiento %}&estado_vencimiento={{ estado_vencimiento }}{% endif %}{% if orden %}&orden={{ orden }}{% endif %}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}{% if fecha_vencimiento_desde %}&fecha_vencimiento_desde={{ fecha_vencimiento_desde }}{% endif %}{% if fecha_vencimiento_hasta %}&fecha_vencimiento_hasta={{ fecha_vencimiento_hasta }}{% endif %}{% if fecha_ingreso_desde %}&fecha_ingreso_desde={{ fecha_ingreso_desde }}{% endif %}{% if fecha_ingreso_hasta %}&fecha_ingreso_hasta={{ fecha_ingreso_hasta }}{% endif %}{% if numero_lote %}&numero_lote={{ numero_lote }}{% endif %}{% if estado_vencimiento %}&estado_vencimiento={{ estado_vencimiento }}{% endif %}{% if orden %}&orden={{ orden }}{% endif %}">Siguiente</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}{% if fecha_vencimiento_desde %}&fecha_vencimiento_desde={{ fecha_vencimiento_desde }}{% endif %}{% if fecha_vencimiento_hasta %}&fecha_vencimiento_hasta={{ fecha_vencimiento_hasta }}{% endif %}{% if fecha_ingreso_desde %}&fecha_ingreso_desde={{ fecha_ingreso_desde }}{% endif %}{% if fecha_ingreso_hasta %}&fecha_ingreso_hasta={{ fecha_ingreso_hasta }}{% endif %}{% if numero_lote %}&numero_lote={{ numero_lote }}{% endif %}{% if estado_vencimiento %}&estado_vencimiento={{ estado_vencimiento }}{% endif %}{% if orden %}&orden={{ orden }}{% endif %}">Última</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <p class="text-muted mt-3">No se encontraron lotes con los filtros aplicados.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

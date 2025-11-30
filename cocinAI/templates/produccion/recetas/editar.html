@@ -1,0 +1,212 @@
+{% extends 'produccion/base.html' %}
+
+{% block page_subtitle %}Editar receta de {{ plato.nombre_plato }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'produccion:lista_recetas' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a la Lista
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil text-primary"></i> Editar Receta: {{ plato.nombre_plato }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="receta-form">
+                    {% csrf_token %}
+                    
+                    <!-- Ingredientes -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0"><i class="bi bi-list-ul"></i> Ingredientes</h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="add-ingredient">
+                                <i class="bi bi-plus-circle"></i> Agregar Ingrediente
+                            </button>
+                        </div>
+                        
+                        {% if formset.non_form_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in formset.non_form_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        {{ formset.management_form }}
+                        <div id="ingredients-container">
+                            {% for form in formset %}
+                                <div class="row mb-3 ingredient-form" data-form-index="{{ forloop.counter0 }}">
+                                    <!-- Campos ocultos primero (importante para Django) -->
+                                    <!-- Renderizar campos ocultos siempre, incluso si están vacíos -->
+                                    {% for hidden in form.hidden_fields %}
+                                        {{ hidden }}
+                                    {% endfor %}
+                                    
+                                    <div class="col-md-5">
+                                        <label class="form-label">Insumo</label>
+                                        {{ form.id_insumo }}
+                                        {% if form.id_insumo.errors %}
+                                            <div class="text-danger small">{{ form.id_insumo.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Cantidad</label>
+                                        {{ form.cantidad_necesaria }}
+                                        {% if form.cantidad_necesaria.errors %}
+                                            <div class="text-danger small">{{ form.cantidad_necesaria.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Eliminar</label>
+                                        <button type="button" class="btn btn-sm btn-outline-danger w-100 delete-form">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'produccion:lista_recetas' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addBtn = document.getElementById('add-ingredient');
+    const container = document.getElementById('ingredients-container');
+    const totalForms = document.getElementById('id_receta_set-TOTAL_FORMS');
+    
+    // Agregar nuevo ingrediente
+    if (addBtn && container && totalForms) {
+        let formCount = parseInt(totalForms.value) || 0;
+        
+        addBtn.addEventListener('click', function() {
+            const forms = container.querySelectorAll('.ingredient-form');
+            if (forms.length > 0) {
+                // Buscar un formulario vacío como template, o usar el último
+                let template = null;
+                for (let i = forms.length - 1; i >= 0; i--) {
+                    const form = forms[i];
+                    const hiddenId = form.querySelector('input[type="hidden"][name*="-id"]');
+                    const select = form.querySelector('select[name*="-id_insumo"]');
+                    // Usar un formulario vacío si existe, o el último
+                    if (!hiddenId || !hiddenId.value) {
+                        if (!select || !select.value) {
+                            template = form.cloneNode(true);
+                            break;
+                        }
+                    }
+                }
+                
+                if (!template) {
+                    template = forms[forms.length - 1].cloneNode(true);
+                }
+                
+                // Actualizar los nombres de los campos
+                const index = formCount;
+                const oldPattern = /receta_set-\d+-/g;
+                template.innerHTML = template.innerHTML.replace(oldPattern, `receta_set-${index}-`);
+                
+                // Limpiar valores para un formulario nuevo
+                const select = template.querySelector('select[name*="-id_insumo"]');
+                const input = template.querySelector('input[name*="-cantidad_necesaria"]');
+                const deleteCheck = template.querySelector('input[name*="-DELETE"]');
+                const hiddenId = template.querySelector('input[type="hidden"][name*="-id"]');
+                
+                if (select) select.value = '';
+                if (input) input.value = '';
+                if (deleteCheck) deleteCheck.checked = false;
+                // Asegurar que el campo id esté vacío para un nuevo formulario
+                if (hiddenId) hiddenId.value = '';
+                
+                // Actualizar data-form-index
+                template.setAttribute('data-form-index', index);
+                
+                container.appendChild(template);
+                formCount++;
+                totalForms.value = formCount;
+            }
+        });
+    }
+    
+    // Eliminar formulario
+    if (container) {
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.delete-form')) {
+                const formRow = e.target.closest('.ingredient-form');
+                const deleteCheckbox = formRow.querySelector('input[name*="-DELETE"]');
+                
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    formRow.style.opacity = '0.5';
+                    formRow.style.pointerEvents = 'none';
+                    
+                    // Remover required de campos ocultos
+                    const inputs = formRow.querySelectorAll('input[required], select[required]');
+                    inputs.forEach(inp => {
+                        inp.removeAttribute('required');
+                    });
+                } else {
+                    formRow.remove();
+                    if (totalForms) {
+                        const currentCount = parseInt(totalForms.value) || 0;
+                        totalForms.value = Math.max(0, currentCount - 1);
+                    }
+                }
+            }
+        });
+    }
+    
+    // Validación antes de enviar
+    const form = document.getElementById('receta-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Verificar que haya al menos un ingrediente con datos
+            const ingredientes = container?.querySelectorAll('.ingredient-form');
+            let tieneIngrediente = false;
+            
+            if (ingredientes) {
+                ingredientes.forEach(function(ing) {
+                    const insumo = ing.querySelector('select[name*="-id_insumo"]');
+                    const cantidad = ing.querySelector('input[name*="-cantidad_necesaria"]');
+                    const deleteCheck = ing.querySelector('input[name*="-DELETE"]');
+                    const isVisible = ing.style.display !== 'none' && ing.style.opacity !== '0.5';
+                    
+                    if (isVisible && insumo && insumo.value && cantidad && cantidad.value && 
+                        (!deleteCheck || !deleteCheck.checked)) {
+                        tieneIngrediente = true;
+                    }
+                });
+            }
+            
+            if (!tieneIngrediente) {
+                e.preventDefault();
+                alert('Por favor, mantén al menos un ingrediente completo (insumo y cantidad) en la receta.');
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
+

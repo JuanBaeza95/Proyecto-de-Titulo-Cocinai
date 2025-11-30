@@ -1,0 +1,164 @@
+{% extends 'ventas/base.html' %}
+
+{% block page_subtitle %}Historial de movimientos de platos a mesas{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'ventas:index' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="busqueda" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                       value="{{ busqueda }}" placeholder="Plato, mesa u observaciones...">
+            </div>
+            <div class="col-md-2">
+                <label for="ubicacion" class="form-label">Ubicación (Mesa)</label>
+                <select class="form-select" id="ubicacion" name="ubicacion">
+                    <option value="">Todas las ubicaciones</option>
+                    {% for u in ubicaciones_mesa %}
+                        <option value="{{ u.id_ubicacion }}" {% if u.id_ubicacion|stringformat:"s" == ubicacion_id %}selected{% endif %}>
+                            {{ u.nombre_ubicacion }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="plato" class="form-label">Plato</label>
+                <select class="form-select" id="plato" name="plato">
+                    <option value="">Todos los platos</option>
+                    {% for p in platos %}
+                        <option value="{{ p.id_plato }}" {% if p.id_plato|stringformat:"s" == plato_id %}selected{% endif %}>
+                            {{ p.nombre_plato }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="usuario" class="form-label">Usuario</label>
+                <select class="form-select" id="usuario" name="usuario">
+                    <option value="">Todos los usuarios</option>
+                    {% for u in usuarios %}
+                        <option value="{{ u.id_usuario }}" {% if u.id_usuario|stringformat:"s" == usuario_id %}selected{% endif %}>
+                            {{ u.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="fecha_desde" class="form-label">Fecha Desde</label>
+                <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" 
+                       value="{{ fecha_desde }}">
+            </div>
+            <div class="col-md-2">
+                <label for="fecha_hasta" class="form-label">Fecha Hasta</label>
+                <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" 
+                       value="{{ fecha_hasta }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <a href="{% url 'ventas:historial_movimientos_mesa' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Limpiar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de movimientos -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Historial de Movimientos a Mesa</h5>
+        <span class="badge bg-primary">{{ page_obj.paginator.count }} movimientos</span>
+    </div>
+    <div class="card-body p-0">
+        {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Plato</th>
+                            <th>Ubicación / Mesa</th>
+                            <th>Usuario</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in page_obj %}
+                        <tr>
+                            <td>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <strong>{{ movimiento.id_plato_producido.id_plato.nombre_plato }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ movimiento.id_ubicacion.nombre_ubicacion }}</span>
+                                {% if movimiento.numero_mesa %}
+                                    <br><small class="text-muted">Mesa {{ movimiento.numero_mesa }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ movimiento.id_usuario.nombre }}</td>
+                            <td>{{ movimiento.observaciones|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="card-body text-center py-5">
+                <p class="text-muted mb-0">No se encontraron movimientos.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginación">
+            <ul class="pagination mb-0 justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}{% if plato_id %}&plato={{ plato_id }}{% endif %}{% if usuario_id %}&usuario={{ usuario_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">Primera</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}{% if plato_id %}&plato={{ plato_id }}{% endif %}{% if usuario_id %}&usuario={{ usuario_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">Anterior</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}{% if plato_id %}&plato={{ plato_id }}{% endif %}{% if usuario_id %}&usuario={{ usuario_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">Siguiente</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}{% if ubicacion_id %}&ubicacion={{ ubicacion_id }}{% endif %}{% if plato_id %}&plato={{ plato_id }}{% endif %}{% if usuario_id %}&usuario={{ usuario_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">Última</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

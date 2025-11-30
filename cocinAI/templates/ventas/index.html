@@ -1,0 +1,106 @@
+{% extends 'ventas/base.html' %}
+
+{% block page_subtitle %}Módulo de gestión de ventas{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver al Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Mesas Activas -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-table display-1 text-info"></i>
+                </div>
+                <h5 class="card-title">Mesas Activas</h5>
+                <p class="card-text text-muted">Ver mesas con platos pendientes de venta y cerrar ventas.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'ventas:lista_mesas_activas' %}" class="btn btn-info">
+                        <i class="bi bi-list-ul"></i> Ver Mesas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mover Platos a Mesa -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-arrow-right-circle display-1 text-warning"></i>
+                </div>
+                <h5 class="card-title">Mover a Mesa</h5>
+                <p class="card-text text-muted">Mueve platos producidos desde cocina a una mesa específica del restaurante.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'produccion:lista_platos_producidos' %}" class="btn btn-warning">
+                        <i class="bi bi-arrow-right"></i> Ver Platos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Ventas de Platos -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-cash-stack display-1 text-success"></i>
+                </div>
+                <h5 class="card-title">Ventas de Platos</h5>
+                <p class="card-text text-muted">Consulta el historial de platos vendidos desde mesas.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'ventas:historial_ventas_platos' %}" class="btn btn-success">
+                        <i class="bi bi-list-ul"></i> Ver Historial
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Movimientos -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-clock-history display-1 text-secondary"></i>
+                </div>
+                <h5 class="card-title">Historial de Movimientos</h5>
+                <p class="card-text text-muted">Consulta el historial de platos movidos de cocina a mesa con filtros avanzados.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'ventas:historial_movimientos_mesa' %}" class="btn btn-secondary">
+                        <i class="bi bi-list-ul"></i> Ver Historial
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comandas -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-receipt display-1 text-primary"></i>
+                </div>
+                <h5 class="card-title">Comandas</h5>
+                <p class="card-text text-muted">Crea comandas para las mesas y gestiona los pedidos de los clientes.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'ventas:lista_comandas' %}" class="btn btn-primary">
+                        <i class="bi bi-list-ul"></i> Ver Comandas
+                    </a>
+                    <a href="{% url 'ventas:crear_comanda' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Crear Comanda
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

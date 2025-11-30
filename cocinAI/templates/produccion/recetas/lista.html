@@ -1,0 +1,170 @@
+{% extends 'produccion/base.html' %}
+
+{% block page_subtitle %}Gestionar el recetario de platos{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'produccion:crear_receta' %}" class="btn btn-primary">
+    <i class="bi bi-plus-circle"></i> Nueva Receta
+</a>
+<a href="{% url 'produccion:index' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label for="busqueda" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                       value="{{ busqueda }}" placeholder="Nombre del plato o ingrediente...">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <a href="{% url 'produccion:lista_recetas' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Limpiar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de recetas -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recetario</h5>
+        <span class="badge bg-primary">{{ page_obj.paginator.count }} platos</span>
+    </div>
+    <div class="card-body p-0">
+        {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Plato</th>
+                            <th>Ingredientes</th>
+                            <th>Última Actualización</th>
+                            <th width="200">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for plato in page_obj %}
+                        <tr>
+                            <td>
+                                <strong>{{ plato.nombre_plato }}</strong>
+                            </td>
+                            <td>
+                                {% with recetas=plato.receta_set.all %}
+                                    {% if recetas %}
+                                        <div>
+                                            {% for receta in recetas|slice:":3" %}
+                                                <span class="badge bg-secondary me-1">
+                                                    {{ receta.id_insumo.nombre_insumo }} ({{ receta.cantidad_necesaria }} {{ receta.id_insumo.unidad_medida }})
+                                                </span>
+                                            {% endfor %}
+                                            {% if recetas|length > 3 %}
+                                                <span class="badge bg-info">+{{ recetas|length|add:"-3" }} más</span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ recetas|length }} ingrediente{{ recetas|length|pluralize }} en total</small>
+                                    {% else %}
+                                        <span class="text-muted">Sin ingredientes</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with recetas=plato.receta_set.all %}
+                                    {% if recetas %}
+                                        {% for receta in recetas %}
+                                            {% if forloop.first %}
+                                                {{ receta.fecha_actualizacion|date:"d/m/Y H:i" }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    {% if plato.receta_set.exists %}
+                                        <a href="{% url 'produccion:detalle_receta' plato.id_plato %}" 
+                                           class="btn btn-outline-info" title="Ver Detalle">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'produccion:editar_receta' plato.id_plato %}" 
+                                           class="btn btn-outline-primary" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'produccion:eliminar_receta' plato.id_plato %}" 
+                                           class="btn btn-outline-danger" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'produccion:crear_receta' %}?plato_id={{ plato.id_plato }}" 
+                                           class="btn btn-outline-success" title="Crear Receta">
+                                            <i class="bi bi-plus-circle"></i> Crear
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <div class="card-footer">
+                <nav aria-label="Navegación de páginas">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if busqueda %}&busqueda={{ busqueda }}{% endif %}">Primera</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}">Siguiente</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if busqueda %}&busqueda={{ busqueda }}{% endif %}">Última</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="card-body text-center py-5">
+                <i class="bi bi-journal-x display-1 text-muted"></i>
+                <p class="text-muted mt-3">No se encontraron recetas con los filtros aplicados.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

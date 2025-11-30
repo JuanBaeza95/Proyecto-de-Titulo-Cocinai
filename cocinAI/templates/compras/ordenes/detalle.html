@@ -1,0 +1,165 @@
+{% extends 'compras/base.html' %}
+
+{% block page_subtitle %}Detalle de orden de compra{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'compras:lista_ordenes' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a la Lista
+</a>
+<a href="{% url 'compras:editar_orden' orden.id_orden_compra %}" class="btn btn-primary">
+    <i class="bi bi-pencil"></i> Editar Orden
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Información de la Orden -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i> Información de la Orden #{{ orden.id_orden_compra }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Proveedor:</strong> {{ orden.id_proveedor.nombre_proveedor }}</p>
+                        <p><strong>Dirección:</strong> {{ orden.id_proveedor.direccion_proveedor }}</p>
+                        <p><strong>Teléfono:</strong> {{ orden.id_proveedor.telefono_proveedor }}</p>
+                        <p><strong>Correo:</strong> <a href="mailto:{{ orden.id_proveedor.correo_proveedor }}">{{ orden.id_proveedor.correo_proveedor }}</a></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Fecha del Pedido:</strong> {{ orden.fecha_pedido|date:"d/m/Y" }}</p>
+                        <p><strong>Estado:</strong> 
+                            {% if orden.estado == 'pendiente' %}
+                                <span class="badge bg-warning">Pendiente</span>
+                            {% elif orden.estado == 'en_proceso' %}
+                                <span class="badge bg-info">En Proceso</span>
+                            {% elif orden.estado == 'recibida' %}
+                                <span class="badge bg-success">Recibida</span>
+                            {% elif orden.estado == 'cancelada' %}
+                                <span class="badge bg-danger">Cancelada</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ orden.estado }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detalles de la Orden -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul"></i> Detalles de la Orden
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if detalles %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Insumo</th>
+                                    <th>Unidad</th>
+                                    <th class="text-end">Cantidad Pedida</th>
+                                    <th class="text-end">Cantidad Recibida</th>
+                                    <th class="text-end">Costo Unitario</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in detalles_con_subtotal %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.detalle.id_insumo.nombre_insumo }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ item.detalle.id_insumo.unidad_medida }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        {{ item.detalle.cantidad_pedida }}
+                                    </td>
+                                    <td class="text-end">
+                                        {% with cantidad_recibida=item.detalle.cantidad_recibida cantidad_pendiente=item.detalle.cantidad_pendiente %}
+                                            {% if cantidad_recibida > 0 %}
+                                                <span class="text-success">{{ cantidad_recibida }}</span>
+                                                {% if cantidad_pendiente > 0 %}
+                                                    <small class="text-muted d-block">Pendiente: {{ cantidad_pendiente }}</small>
+                                                {% else %}
+                                                    <small class="text-success d-block"><i class="bi bi-check-circle"></i> Completo</small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">0</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="text-end">
+                                        ${{ item.detalle.costo_unitario_acordado|floatformat:0 }}
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>${{ item.subtotal|floatformat:0 }}</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" class="text-end"><strong>Total Estimado:</strong></td>
+                                    <td class="text-end"><strong class="text-primary">${{ total_estimado|floatformat:0 }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <p class="text-muted mt-3">No hay detalles registrados para esta orden.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Acciones rápidas -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Acciones</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if orden.estado != 'cancelada' and orden.estado != 'recibida' %}
+                    <a href="{% url 'compras:recepcionar_orden' orden.id_orden_compra %}" class="btn btn-success">
+                        <i class="bi bi-box-arrow-in-down"></i> Recepcionar Orden
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'compras:editar_orden' orden.id_orden_compra %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Editar Orden
+                    </a>
+                    <a href="{% url 'compras:eliminar_orden' orden.id_orden_compra %}" class="btn btn-outline-danger">
+                        <i class="bi bi-trash"></i> Eliminar Orden
+                    </a>
+                    <a href="{% url 'compras:lista_ordenes' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver a la Lista
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resumen -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">Resumen</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Items:</strong> {{ detalles_con_subtotal|length }}</p>
+                <p class="mb-0"><strong>Total:</strong> <span class="text-primary">${{ total_estimado|floatformat:0 }}</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

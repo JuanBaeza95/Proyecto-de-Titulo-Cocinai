@@ -1,0 +1,205 @@
+{% load usuario_tags %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - CocinAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body style="background-color: #f5f5f5;">
+<div class="container mt-4">
+    <div class="mb-3">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-house"></i> Dashboard
+        </a>
+        <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Salir
+        </a>
+    </div>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>👥 Editar Usuario: {{ usuario.username }}</h1>
+        <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a la Lista
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil text-primary"></i> Información del Usuario
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <!-- Username -->
+                            <div class="col-md-6">
+                                <label for="{{ form.username.id_for_label }}" class="form-label">
+                                    {{ form.username.label }}
+                                </label>
+                                {{ form.username }}
+                                <small class="form-text text-muted">El nombre de usuario no se puede cambiar.</small>
+                                {% if form.username.errors %}
+                                    <div class="text-danger small">{{ form.username.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Email -->
+                            <div class="col-md-6">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">
+                                    {{ form.email.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Nombre -->
+                            <div class="col-md-6">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                    {{ form.first_name.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger small">{{ form.first_name.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Apellido -->
+                            <div class="col-md-6">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                    {{ form.last_name.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger small">{{ form.last_name.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Estado -->
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        {{ form.is_active.label }}
+                                    </label>
+                                </div>
+                                {% if form.is_active.errors %}
+                                    <div class="text-danger small">{{ form.is_active.errors }}</div>
+                                {% endif %}
+                                {% if form.is_active.help_text %}
+                                    <small class="form-text text-muted">{{ form.is_active.help_text }}</small>
+                                {% endif %}
+                            </div>
+
+                            <!-- Secciones -->
+                            <div class="col-12">
+                                <label class="form-label">
+                                    Secciones de Acceso
+                                </label>
+                                <div class="border rounded p-3">
+                                    {% for choice in form.secciones %}
+                                        <div class="form-check">
+                                            {{ choice.tag }}
+                                            <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                                {{ choice.choice_label }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                {% if form.secciones.errors %}
+                                    <div class="text-danger small">{{ form.secciones.errors }}</div>
+                                {% endif %}
+                                {% if form.secciones.help_text %}
+                                    <small class="form-text text-muted">{{ form.secciones.help_text }}</small>
+                                {% endif %}
+                            </div>
+
+                            <!-- Menús por Sección -->
+                            <div class="col-12">
+                                <label class="form-label">
+                                    Menús Específicos por Sección
+                                </label>
+                                <p class="text-muted small">Selecciona los menús específicos a los que el usuario tendrá acceso dentro de cada sección.</p>
+                                
+                                <div class="accordion" id="menusAccordion">
+                                    {% for seccion_id, seccion_nombre in secciones %}
+                                        {% if menus_por_seccion|get_item:seccion_id %}
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header" id="heading{{ seccion_id|capfirst }}">
+                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                            data-bs-target="#collapse{{ seccion_id|capfirst }}" aria-expanded="false" 
+                                                            aria-controls="collapse{{ seccion_id|capfirst }}">
+                                                        {{ seccion_nombre }}
+                                                    </button>
+                                                </h2>
+                                                <div id="collapse{{ seccion_id|capfirst }}" class="accordion-collapse collapse" 
+                                                     aria-labelledby="heading{{ seccion_id|capfirst }}" data-bs-parent="#menusAccordion">
+                                                    <div class="accordion-body">
+                                                        <div class="row g-2">
+                                                            {% for menu_id, menu_nombre in menus_por_seccion|get_item:seccion_id %}
+                                                                {% with field_name="menu_"|add:seccion_id|add:"_"|add:menu_id %}
+                                                                    {% if field_name in form.fields %}
+                                                                        <div class="col-md-6">
+                                                                            <div class="form-check">
+                                                                                {{ form|get_field:field_name }}
+                                                                                <label class="form-check-label" for="id_{{ field_name }}">
+                                                                                    {{ menu_nombre }}
+                                                                                </label>
+                                                                            </div>
+                                                                        </div>
+                                                                    {% endif %}
+                                                                {% endwith %}
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

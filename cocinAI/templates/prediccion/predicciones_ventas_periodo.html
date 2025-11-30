@@ -1,0 +1,286 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<a href="{% url 'prediccion:predicciones_ventas' %}" class="btn btn-outline-primary">
+    <i class="bi bi-arrow-left"></i> Predicciones Simples
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar-range"></i> Configurar Período de Predicción</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'prediccion:predicciones_ventas_periodo' %}" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="periodo" class="form-label">Período Predefinido</label>
+                        <select name="periodo" id="periodo" class="form-select" onchange="toggleCustomDates()">
+                            <option value="semana_siguiente" {% if periodo_predefinido == 'semana_siguiente' %}selected{% endif %}>Semana Siguiente</option>
+                            <option value="2_semanas" {% if periodo_predefinido == '2_semanas' %}selected{% endif %}>2 Semanas Siguientes</option>
+                            <option value="mes_siguiente" {% if periodo_predefinido == 'mes_siguiente' %}selected{% endif %}>Mes Siguiente</option>
+                            <option value="trimestre_siguiente" {% if periodo_predefinido == 'trimestre_siguiente' %}selected{% endif %}>Trimestre Siguiente</option>
+                            <option value="custom" {% if periodo_predefinido == 'custom' %}selected{% endif %}>Rango Personalizado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3" id="custom_dates" style="display: none;">
+                        <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                        <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" 
+                               value="{% if fecha_inicio %}{{ fecha_inicio|date:'Y-m-d' }}{% endif %}">
+                    </div>
+                    <div class="col-md-3" id="custom_dates_fin" style="display: none;">
+                        <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                        <input type="date" name="fecha_fin" id="fecha_fin" class="form-control"
+                               value="{% if fecha_fin %}{{ fecha_fin|date:'Y-m-d' }}{% endif %}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="plato" class="form-label">Plato (Opcional)</label>
+                        <select name="plato" id="plato" class="form-select">
+                            <option value="">Todos los platos</option>
+                            {% for plato in platos %}
+                            <option value="{{ plato.id_plato }}" {% if plato_seleccionado and plato_seleccionado.id_plato == plato.id_plato %}selected{% endif %}>
+                                {{ plato.nombre_plato }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="modelo_tipo" class="form-label">Modelo ML</label>
+                        <select name="modelo_tipo" id="modelo_tipo" class="form-select">
+                            {% for modelo in modelos_disponibles %}
+                            <option value="{{ modelo }}" {% if modelo == modelo_tipo %}selected{% endif %}>
+                                {{ modelo|title }}
+                                {% if modelo == 'auto' %}(Recomendado){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Predecir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if resultado.error %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i> <strong>Error:</strong> {{ resultado.error }}
+</div>
+{% elif resultado.predicciones %}
+<div class="row mb-4">
+    <!-- Resumen de Predicciones -->
+    <div class="col-md-4">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-graph-up"></i> Predicción ML</h6>
+            </div>
+            <div class="card-body">
+                <h3 class="text-primary">{{ resultado.total_predicho|floatformat:0 }}</h3>
+                <p class="text-muted mb-1">Total de ventas predichas</p>
+                <small class="text-muted">
+                    Período: {{ fecha_inicio|date:"d/m/Y" }} - {{ fecha_fin|date:"d/m/Y" }}<br>
+                    Promedio diario: {{ resultado.promedio_diario|floatformat:1 }} ventas/día
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Comparación con Año Anterior -->
+    {% if resultado.comparacion_anio_anterior %}
+    <div class="col-md-4">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Año Anterior</h6>
+            </div>
+            <div class="card-body">
+                <h3 class="text-info">{{ resultado.comparacion_anio_anterior.total_ventas_anterior|floatformat:0 }}</h3>
+                <p class="text-muted mb-1">Ventas del mismo período</p>
+                <small class="text-muted">
+                    {{ resultado.comparacion_anio_anterior.fecha_inicio_anterior|date:"d/m/Y" }} - 
+                    {{ resultado.comparacion_anio_anterior.fecha_fin_anterior|date:"d/m/Y" }}<br>
+                    Promedio: {{ resultado.comparacion_anio_anterior.promedio_diario_anterior|floatformat:1 }} ventas/día
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card {% if resultado.comparacion_anio_anterior.diferencia_porcentual >= 0 %}border-success{% else %}border-warning{% endif %}">
+            <div class="card-header {% if resultado.comparacion_anio_anterior.diferencia_porcentual >= 0 %}bg-success{% else %}bg-warning{% endif %} text-white">
+                <h6 class="mb-0"><i class="bi bi-arrow-up-down"></i> Comparación</h6>
+            </div>
+            <div class="card-body">
+                <h3 class="{% if resultado.comparacion_anio_anterior.diferencia_porcentual >= 0 %}text-success{% else %}text-warning{% endif %}">
+                    {% if resultado.comparacion_anio_anterior.diferencia_porcentual >= 0 %}+{% endif %}{{ resultado.comparacion_anio_anterior.diferencia_porcentual|floatformat:1 }}%
+                </h3>
+                <p class="text-muted mb-1">Diferencia porcentual</p>
+                <small class="text-muted">
+                    Diferencia absoluta: 
+                    {% if resultado.comparacion_anio_anterior.diferencia_absoluta >= 0 %}+{% endif %}
+                    {{ resultado.comparacion_anio_anterior.diferencia_absoluta|floatformat:0 }} ventas
+                </small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tabla de Predicciones Diarias -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-calendar-week"></i> Predicciones Diarias</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Día</th>
+                        <th>Ventas Predichas</th>
+                        {% if resultado.comparacion_anio_anterior %}
+                        <th>Ventas Año Anterior</th>
+                        <th>Diferencia</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pred in resultado.predicciones %}
+                    <tr>
+                        <td>{{ pred.fecha|date:"d/m/Y" }}</td>
+                        <td>
+                            {{ pred.dia_semana_es }}
+                            {% if pred.es_fin_semana %}
+                            <span class="badge bg-secondary">Fin de semana</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ pred.ventas_predichas|floatformat:0 }}</strong></td>
+                        {% if resultado.comparacion_anio_anterior %}
+                        <td>{{ pred.ventas_anterior|default:0 }}</td>
+                        <td>
+                            {% if pred.diferencia >= 0 %}
+                                <span class="text-success">+{{ pred.diferencia|floatformat:0 }}</span>
+                            {% else %}
+                                <span class="text-danger">{{ pred.diferencia|floatformat:0 }}</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Ventas por Plato (Año Anterior) -->
+{% if resultado.comparacion_anio_anterior and resultado.comparacion_anio_anterior.ventas_por_plato_anterior %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Ventas por Plato (Año Anterior)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Plato</th>
+                        <th>Ventas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plato, cantidad in resultado.comparacion_anio_anterior.ventas_por_plato_anterior.items|dictsortreversed:1 %}
+                    <tr>
+                        <td>{{ plato }}</td>
+                        <td><strong>{{ cantidad }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if resultado.metricas_modelo %}
+<div class="alert alert-info mt-3">
+    <strong>Métricas del Modelo ML:</strong><br>
+    <div class="row mt-2">
+        <div class="col-md-3">
+            <strong>R² Score:</strong> {{ resultado.metricas_modelo.r2|default:"N/A" }}
+            {% if resultado.metricas_modelo.r2 %}
+                {% if resultado.metricas_modelo.r2 >= 0.4 %}
+                    <span class="badge bg-success">Excelente</span>
+                {% elif resultado.metricas_modelo.r2 >= 0.2 %}
+                    <span class="badge bg-warning">Bueno</span>
+                {% else %}
+                    <span class="badge bg-danger">Mejorable</span>
+                {% endif %}
+            {% endif %}
+        </div>
+        <div class="col-md-3">
+            <strong>MAE:</strong> {{ resultado.metricas_modelo.mae|default:"N/A" }}
+            <small class="text-muted d-block">Error absoluto promedio</small>
+        </div>
+        <div class="col-md-3">
+            <strong>RMSE:</strong> {{ resultado.metricas_modelo.rmse|default:"N/A" }}
+            <small class="text-muted d-block">Raíz del error cuadrático</small>
+        </div>
+        <div class="col-md-3">
+            <strong>MAPE:</strong> {{ resultado.metricas_modelo.mape|default:"N/A" }}%
+            {% if resultado.metricas_modelo.mape %}
+                {% if resultado.metricas_modelo.mape <= 20 %}
+                    <span class="badge bg-success">Excelente</span>
+                {% elif resultado.metricas_modelo.mape <= 30 %}
+                    <span class="badge bg-warning">Bueno</span>
+                {% else %}
+                    <span class="badge bg-danger">Mejorable</span>
+                {% endif %}
+            {% endif %}
+            <small class="text-muted d-block">Error relativo (%)</small>
+        </div>
+    </div>
+    <div class="mt-2">
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i> 
+            <strong>Nota:</strong> MAE y RMSE son métricas absolutas que dependen de la escala de los datos. 
+            Con más datos históricos, estos valores pueden aumentar aunque el modelo sea mejor. 
+            El <strong>R²</strong> y <strong>MAPE</strong> son métricas relativas que indican la calidad real del modelo.
+            {% if resultado.metricas_modelo.r2 and resultado.metricas_modelo.r2 >= 0.4 %}
+            <br><span class="text-success">✓ Tu modelo tiene un R² de {{ resultado.metricas_modelo.r2 }}, lo que indica una buena capacidad predictiva.</span>
+            {% endif %}
+        </small>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+<script>
+function toggleCustomDates() {
+    const periodo = document.getElementById('periodo').value;
+    const customDates = document.getElementById('custom_dates');
+    const customDatesFin = document.getElementById('custom_dates_fin');
+    
+    if (periodo === 'custom') {
+        customDates.style.display = 'block';
+        customDatesFin.style.display = 'block';
+    } else {
+        customDates.style.display = 'none';
+        customDatesFin.style.display = 'none';
+    }
+}
+
+// Ejecutar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    toggleCustomDates();
+});
+</script>
+{% endblock %}
+

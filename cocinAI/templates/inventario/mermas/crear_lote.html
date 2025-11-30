@@ -1,0 +1,178 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Registrar merma de lote{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'inventario:lista_mermas' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a la Lista
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle text-warning"></i> Registrar Merma de Lote
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.id_lote.id_for_label }}" class="form-label">
+                            {{ form.id_lote.label }} <span class="text-danger">*</span>
+                        </label>
+                        {% if lote_preseleccionado %}
+                            {# Si hay un lote preseleccionado, mostrar como campo deshabilitado #}
+                            <input type="hidden" name="id_lote" value="{{ lote_preseleccionado.id_lote }}">
+                            <input type="text" class="form-control" 
+                                   value="{{ lote_preseleccionado.numero_lote }} - {{ lote_preseleccionado.id_insumo.nombre_insumo }} ({{ lote_preseleccionado.cantidad_actual }} {{ lote_preseleccionado.id_insumo.unidad_medida }})" 
+                                   disabled readonly>
+                            <div class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> Este lote fue seleccionado desde la lista de lotes y no puede ser modificado.
+                            </div>
+                        {% else %}
+                            {{ form.id_lote }}
+                            {% if form.id_lote.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.id_lote.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.id_lote.help_text %}
+                                <div class="form-text">{{ form.id_lote.help_text }}</div>
+                            {% endif %}
+                        {% endif %}
+                        <div id="lote-info" class="alert alert-info mt-2" style="display: {% if lote_preseleccionado %}block{% else %}none{% endif %};">
+                            <strong>Información del lote:</strong>
+                            <div id="lote-details">
+                                {% if lote_preseleccionado %}
+                                    <strong>Insumo:</strong> {{ lote_preseleccionado.id_insumo.nombre_insumo }}<br>
+                                    <strong>Número de Lote:</strong> {{ lote_preseleccionado.numero_lote }}<br>
+                                    <strong>Cantidad Disponible:</strong> <span class="badge bg-success">{{ lote_preseleccionado.cantidad_actual }} {{ lote_preseleccionado.id_insumo.unidad_medida }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.id_causa.id_for_label }}" class="form-label">
+                            {{ form.id_causa.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.id_causa }}
+                        {% if form.id_causa.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.id_causa.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.id_causa.help_text %}
+                            <div class="form-text">{{ form.id_causa.help_text }}</div>
+                        {% endif %}
+                        <a href="{% url 'inventario:crear_causa_merma' %}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                            <i class="bi bi-plus-circle"></i> Crear Nueva Causa
+                        </a>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.cantidad_desperdiciada.id_for_label }}" class="form-label">
+                            {{ form.cantidad_desperdiciada.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.cantidad_desperdiciada }}
+                        {% if form.cantidad_desperdiciada.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.cantidad_desperdiciada.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.cantidad_desperdiciada.help_text %}
+                            <div class="form-text">{{ form.cantidad_desperdiciada.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.fecha_registro.id_for_label }}" class="form-label">
+                            {{ form.fecha_registro.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.fecha_registro }}
+                        {% if form.fecha_registro.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.fecha_registro.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'inventario:lista_mermas' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-circle"></i> Registrar Merma
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if lote_preseleccionado %}
+        // Si hay un lote preseleccionado, configurar el max del campo cantidad
+        const cantidadInput = document.getElementById('{{ form.cantidad_desperdiciada.id_for_label }}');
+        if (cantidadInput) {
+            cantidadInput.setAttribute('max', {{ lote_preseleccionado.cantidad_actual }});
+        }
+    {% else %}
+        // Solo ejecutar si no hay lote preseleccionado
+        const loteSelect = document.getElementById('{{ form.id_lote.id_for_label }}');
+        const loteInfoDiv = document.getElementById('lote-info');
+        const loteDetailsDiv = document.getElementById('lote-details');
+        
+        // Información de lotes desde el formulario
+        const lotesInfo = {{ lotes_info_json|safe|default:"{}" }};
+        
+        function updateLoteInfo() {
+            const selectedLoteId = loteSelect.value;
+            if (selectedLoteId && lotesInfo[selectedLoteId]) {
+                const info = lotesInfo[selectedLoteId];
+                loteDetailsDiv.innerHTML = `
+                    <strong>Insumo:</strong> ${info.insumo}<br>
+                    <strong>Número de Lote:</strong> ${info.numero_lote}<br>
+                    <strong>Cantidad Disponible:</strong> <span class="badge bg-success">${info.cantidad} ${info.unidad}</span>
+                `;
+                loteInfoDiv.style.display = 'block';
+                
+                // Actualizar el max del campo cantidad
+                const cantidadInput = document.getElementById('{{ form.cantidad_desperdiciada.id_for_label }}');
+                if (cantidadInput) {
+                    cantidadInput.setAttribute('max', info.cantidad);
+                }
+            } else {
+                loteInfoDiv.style.display = 'none';
+            }
+        }
+        
+        if (loteSelect) {
+            loteSelect.addEventListener('change', updateLoteInfo);
+            
+            // Actualizar al cargar si ya hay un valor seleccionado
+            if (loteSelect.value) {
+                updateLoteInfo();
+            }
+        }
+    {% endif %}
+});
+</script>
+{% endblock %}
+

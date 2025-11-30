@@ -1,0 +1,155 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<a href="{% url 'prediccion:predicciones_ventas_periodo' %}" class="btn btn-success me-2">
+    <i class="bi bi-calendar-range"></i> Predicciones por Período
+</a>
+<a href="{% url 'prediccion:index' %}" class="btn btn-outline-primary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-sliders"></i> Configurar Predicción</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'prediccion:predicciones_ventas' %}" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="plato" class="form-label">Plato (Opcional)</label>
+                        <select name="plato" id="plato" class="form-select">
+                            <option value="">Todos los platos</option>
+                            {% for plato in platos %}
+                            <option value="{{ plato.id_plato }}" {% if plato_seleccionado and plato_seleccionado.id_plato == plato.id_plato %}selected{% endif %}>
+                                {{ plato.nombre_plato }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="dias" class="form-label">Días a Predecir</label>
+                        <select name="dias" id="dias" class="form-select">
+                            <option value="7" {% if dias_prediccion == 7 %}selected{% endif %}>7 días</option>
+                            <option value="14" {% if dias_prediccion == 14 %}selected{% endif %}>14 días</option>
+                            <option value="30" {% if dias_prediccion == 30 %}selected{% endif %}>30 días</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Predecir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if predicciones.error %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i> <strong>Error:</strong> {{ predicciones.error }}
+</div>
+{% elif predicciones.predicciones %}
+<div class="row mb-4">
+    <!-- Resumen -->
+    <div class="col-md-4">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-graph-up"></i> Total Predicho</h6>
+            </div>
+            <div class="card-body">
+                <h3 class="text-primary">{{ predicciones.total_predicho|floatformat:0 }}</h3>
+                <p class="text-muted mb-1">Ventas totales predichas</p>
+                <small class="text-muted">
+                    Promedio diario: {{ predicciones.promedio_diario|floatformat:1 }} ventas/día<br>
+                    Período: {{ dias_prediccion }} días
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-cpu"></i> Método</h6>
+            </div>
+            <div class="card-body">
+                <h5 class="text-info">{{ predicciones.metodo }}</h5>
+                <p class="text-muted mb-0">Modelo de Machine Learning</p>
+            </div>
+        </div>
+    </div>
+    
+    {% if plato_seleccionado %}
+    <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-egg-fried"></i> Plato Seleccionado</h6>
+            </div>
+            <div class="card-body">
+                <h5 class="text-success">{{ plato_seleccionado.nombre_plato }}</h5>
+                <p class="text-muted mb-0">Predicciones específicas</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tabla de Predicciones Diarias -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-calendar-week"></i> Predicciones Diarias</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Día</th>
+                        <th>Ventas Predichas</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pred in predicciones.predicciones %}
+                    <tr>
+                        <td>{{ pred.fecha|date:"d/m/Y" }}</td>
+                        <td>
+                            {{ pred.dia_semana }}
+                            {% if pred.es_fin_semana %}
+                            <span class="badge bg-secondary">Fin de semana</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ pred.ventas_predichas|floatformat:0 }}</strong></td>
+                        <td>
+                            {% if pred.es_fin_semana %}
+                            <small class="text-muted">Mayor demanda esperada</small>
+                            {% else %}
+                            <small class="text-muted">Demanda normal</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <th colspan="2">Total</th>
+                        <th>{{ predicciones.total_predicho|floatformat:0 }}</th>
+                        <th>Promedio: {{ predicciones.promedio_diario|floatformat:1 }}/día</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <i class="bi bi-info-circle"></i> No hay predicciones disponibles. Por favor, selecciona los parámetros y haz clic en "Predecir".
+</div>
+{% endif %}
+{% endblock %}
+

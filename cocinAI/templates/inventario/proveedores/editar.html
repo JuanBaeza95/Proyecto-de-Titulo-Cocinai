@@ -1,0 +1,97 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Editar información del proveedor{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'inventario:lista_proveedores' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a la Lista
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil text-primary"></i> Editar Proveedor: {{ proveedor.nombre_proveedor }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.nombre_proveedor.id_for_label }}" class="form-label">
+                            {{ form.nombre_proveedor.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.nombre_proveedor }}
+                        {% if form.nombre_proveedor.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.nombre_proveedor.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.direccion_proveedor.id_for_label }}" class="form-label">
+                            {{ form.direccion_proveedor.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.direccion_proveedor }}
+                        {% if form.direccion_proveedor.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.direccion_proveedor.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.telefono_proveedor.id_for_label }}" class="form-label">
+                                {{ form.telefono_proveedor.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.telefono_proveedor }}
+                            {% if form.telefono_proveedor.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.telefono_proveedor.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.correo_proveedor.id_for_label }}" class="form-label">
+                                {{ form.correo_proveedor.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.correo_proveedor }}
+                            {% if form.correo_proveedor.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.correo_proveedor.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'inventario:lista_proveedores' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

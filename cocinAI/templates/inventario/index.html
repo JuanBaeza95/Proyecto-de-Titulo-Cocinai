@@ -1,0 +1,181 @@
+{% extends 'inventario/base.html' %}
+
+{% block page_subtitle %}Módulo de gestión de inventario{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver al Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Gestión de Proveedores -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-truck display-1 text-primary"></i>
+                </div>
+                <h5 class="card-title">Proveedores</h5>
+                <p class="card-text text-muted">Gestiona los proveedores de insumos y suministros.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'inventario:lista_proveedores' %}" class="btn btn-primary">
+                        <i class="bi bi-list-ul"></i> Ver Proveedores
+                    </a>
+                    <a href="{% url 'inventario:crear_proveedor' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Registrar Proveedor
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gestión de Insumos -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-box display-1 text-success"></i>
+                </div>
+                <h5 class="card-title">Insumos</h5>
+                <p class="card-text text-muted">Administra el maestro de insumos del restaurante.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'inventario:lista_insumos' %}" class="btn btn-success">
+                        <i class="bi bi-list-ul"></i> Ver Insumos
+                    </a>
+                    <a href="{% url 'inventario:crear_insumo' %}" class="btn btn-outline-success">
+                        <i class="bi bi-plus-circle"></i> Crear Insumo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gestión de Ubicaciones -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-geo-alt display-1 text-secondary"></i>
+                </div>
+                <h5 class="card-title">Ubicaciones</h5>
+                <p class="card-text text-muted">Gestiona las ubicaciones de almacenamiento (bodegas, cocinas, etc.).</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'inventario:lista_ubicaciones' %}" class="btn btn-secondary">
+                        <i class="bi bi-list-ul"></i> Ver Ubicaciones
+                    </a>
+                    <a href="{% url 'inventario:crear_ubicacion' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-plus-circle"></i> Crear Ubicación
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gestión de Lotes -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-box-seam display-1 text-danger"></i>
+                </div>
+                <h5 class="card-title">Lotes Disponibles</h5>
+                <p class="card-text text-muted">Consulta los lotes disponibles en inventario con filtros por fecha de vencimiento, ubicación, etc.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'inventario:lista_lotes' %}" class="btn btn-danger">
+                        <i class="bi bi-list-ul"></i> Ver Lotes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movimientos de Stock -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-arrow-left-right display-1 text-primary"></i>
+                </div>
+                <h5 class="card-title">Movimientos de Stock</h5>
+                <p class="card-text text-muted">Genera movimientos de stock entre ubicaciones (transferencias, salidas, ajustes).</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'inventario:crear_movimiento_stock' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Crear Movimiento
+                    </a>
+                    <a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-clock-history"></i> Ver Historial
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gestión de Mermas -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
+                </div>
+                <h5 class="card-title">Mermas</h5>
+                <p class="card-text text-muted">Registra mermas de lotes y platos producidos con sus causas.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'inventario:lista_mermas' %}" class="btn btn-warning">
+                        <i class="bi bi-list-ul"></i> Ver Mermas
+                    </a>
+                    <div class="btn-group">
+                        <a href="{% url 'inventario:crear_merma_lote' %}" class="btn btn-outline-warning">
+                            <i class="bi bi-box"></i> Mermar Lote
+                        </a>
+                        <a href="{% url 'inventario:crear_merma_plato' %}" class="btn btn-outline-warning">
+                            <i class="bi bi-egg-fried"></i> Mermar Plato
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gestión de Causas de Merma -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-tag display-1 text-danger"></i>
+                </div>
+                <h5 class="card-title">Causas de Merma</h5>
+                <p class="card-text text-muted">Gestiona las causas de merma disponibles para registrar desperdicios.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'inventario:lista_causas_merma' %}" class="btn btn-danger">
+                        <i class="bi bi-list-ul"></i> Ver Causas
+                    </a>
+                    <a href="{% url 'inventario:crear_causa_merma' %}" class="btn btn-outline-danger">
+                        <i class="bi bi-plus-circle"></i> Crear Causa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Información adicional -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-info-circle"></i> Información del Módulo
+                </h6>
+                <p class="card-text mb-0">
+                    Desde este módulo puedes gestionar todos los aspectos del inventario: proveedores, insumos, 
+                    productos y ubicaciones. Asegúrate de registrar primero los proveedores y las ubicaciones 
+                    antes de realizar recepciones de compras.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

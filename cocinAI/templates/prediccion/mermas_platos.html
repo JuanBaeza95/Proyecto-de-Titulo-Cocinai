@@ -1,0 +1,236 @@
+{% extends 'prediccion/base.html' %}
+
+{% block page_actions %}
+<a href="{% url 'prediccion:index' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtro de Fechas -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-calendar-range"></i> Seleccionar Período</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="fecha_desde" class="form-label">Fecha Desde</label>
+                <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" 
+                       value="{{ fecha_desde|date:'Y-m-d' }}" required>
+            </div>
+            <div class="col-md-4">
+                <label for="fecha_hasta" class="form-label">Fecha Hasta</label>
+                <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" 
+                       value="{{ fecha_hasta|date:'Y-m-d' }}" required>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Analizar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if analisis.mensaje %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> {{ analisis.mensaje }}
+</div>
+{% else %}
+
+<!-- Resumen General -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <h6>Platos Mermados</h6>
+            <h2>{{ analisis.resumen.total_platos_mermados }}</h2>
+            <small>Tipos diferentes</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card danger">
+            <h6>Cantidad Total Mermada</h6>
+            <h2>{{ analisis.resumen.total_cantidad_mermada|floatformat:2 }}</h2>
+            <small>Unidades desperdiciadas</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <h6>Insumos Afectados</h6>
+            <h2>{{ analisis.resumen.total_insumos_diferentes }}</h2>
+            <small>Tipos de insumos</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <h6>Registros de Merma</h6>
+            <h2>{{ analisis.resumen.total_registros_mermas }}</h2>
+            <small>Eventos registrados</small>
+        </div>
+    </div>
+</div>
+
+<!-- Información del Período -->
+<div class="alert alert-light mb-4">
+    <i class="bi bi-calendar-event"></i> 
+    <strong>Período analizado:</strong> 
+    {{ analisis.periodo.fecha_desde|date:"d/m/Y" }} - {{ analisis.periodo.fecha_hasta|date:"d/m/Y" }}
+</div>
+
+<!-- Platos Mermados -->
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="bi bi-egg-fried"></i> Platos Mermados en el Período</h5>
+    </div>
+    <div class="card-body">
+        {% if analisis.platos_mermados %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Plato</th>
+                        <th class="text-end">Cantidad Mermada</th>
+                        <th class="text-end">Registros</th>
+                        <th>Causas Principales</th>
+                        <th class="text-center">Insumos Equivalentes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plato in analisis.platos_mermados %}
+                    <tr>
+                        <td>
+                            <strong>{{ plato.plato_nombre }}</strong>
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-danger">{{ plato.cantidad_mermada|floatformat:2 }}</span>
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-secondary">{{ plato.cantidad_registros }}</span>
+                        </td>
+                        <td>
+                            {% for causa, cantidad in plato.causas.items %}
+                                <span class="badge bg-warning text-dark me-1" title="{{ cantidad }} registro(s)">
+                                    {{ causa }}
+                                </span>
+                            {% endfor %}
+                        </td>
+                        <td class="text-center">
+                            {% if plato.insumos_equivalentes %}
+                                <button class="btn btn-sm btn-outline-primary" type="button" 
+                                        data-bs-toggle="collapse" data-bs-target="#insumos-{{ plato.plato_id }}">
+                                    <i class="bi bi-list-ul"></i> Ver ({{ plato.insumos_equivalentes|length }})
+                                </button>
+                            {% else %}
+                                <span class="text-muted">Sin receta</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if plato.insumos_equivalentes %}
+                    <tr class="collapse" id="insumos-{{ plato.plato_id }}">
+                        <td colspan="5">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Insumos Equivalentes para {{ plato.plato_nombre }}:</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Insumo</th>
+                                                    <th class="text-end">Cantidad por Plato</th>
+                                                    <th class="text-end">Total Desperdiciado</th>
+                                                    <th>Unidad</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for insumo in plato.insumos_equivalentes %}
+                                                <tr>
+                                                    <td>{{ insumo.insumo_nombre }}</td>
+                                                    <td class="text-end">{{ insumo.cantidad_por_plato|floatformat:2 }}</td>
+                                                    <td class="text-end">
+                                                        <strong>{{ insumo.cantidad|floatformat:2 }}</strong>
+                                                    </td>
+                                                    <td>{{ insumo.unidad_medida }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No se encontraron platos mermados en el período seleccionado.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Insumos Equivalentes Totales -->
+{% if analisis.insumos_equivalentes %}
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"><i class="bi bi-box-seam"></i> Insumos Equivalentes Totales Desperdiciados</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-3">
+            <i class="bi bi-info-circle"></i> 
+            Esta tabla muestra la cantidad total de cada insumo que se desperdició debido a las mermas de platos en el período seleccionado.
+        </p>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Insumo</th>
+                        <th class="text-end">Cantidad Total Desperdiciada</th>
+                        <th>Unidad</th>
+                        <th>Platos Afectados</th>
+                        <th class="text-end">Cantidad de Platos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for insumo in analisis.insumos_equivalentes %}
+                    <tr>
+                        <td>
+                            <strong>{{ insumo.insumo_nombre }}</strong>
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-danger fs-6">{{ insumo.cantidad_total|floatformat:2 }}</span>
+                        </td>
+                        <td>{{ insumo.unidad_medida }}</td>
+                        <td>
+                            {% for plato_nombre in insumo.platos_afectados %}
+                                <span class="badge bg-secondary me-1">{{ plato_nombre }}</span>
+                            {% endfor %}
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-info">{{ insumo.cantidad_platos_afectados }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-warning">
+                        <th>Total</th>
+                        <th class="text-end">
+                            {{ analisis.insumos_equivalentes|length }} insumos diferentes
+                        </th>
+                        <th colspan="3"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
